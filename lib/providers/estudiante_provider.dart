@@ -144,26 +144,26 @@ class EstudianteProvider extends ChangeNotifier {
   // ============== MÉTODOS PARA FILTROS EN CASCADA ==============
 
   /// Obtiene los IDs de años lectivos disponibles para el colegio seleccionado
-  Future<List<int>> obtenerAniosDisponiblesDesdeColegio(int colegioId) async => await _repository.obtenerAniosConAsignacion(colegioId: colegioId);
+  Future<List<int>> obtenerAniosDisponiblesDesdeColegio(int colegioId) async => _repository.obtenerAniosConAsignacion(colegioId: colegioId);
 
   /// Obtiene los IDs de colegios disponibles para el año lectivo seleccionado
-  Future<List<int>> obtenerColegiosDisponibles(int anioLectivoId) async => await _repository.obtenerColegiosConAsignacion(anioLectivoId: anioLectivoId);
+  Future<List<int>> obtenerColegiosDisponibles(int anioLectivoId) async => _repository.obtenerColegiosConAsignacion(anioLectivoId: anioLectivoId);
 
   /// Obtiene los IDs de asignaturas disponibles para el año y colegio seleccionados
-  Future<List<int>> obtenerAsignaturasDisponibles(int anioLectivoId, int colegioId) async => await _repository.obtenerAsignaturasConAsignacion(
+  Future<List<int>> obtenerAsignaturasDisponibles(int anioLectivoId, int colegioId) async => _repository.obtenerAsignaturasConAsignacion(
       anioLectivoId: anioLectivoId,
       colegioId: colegioId,
     );
 
   /// Obtiene los IDs de grados disponibles para el año, colegio y asignatura seleccionados
-  Future<List<int>> obtenerGradosDisponibles(int anioLectivoId, int colegioId, int asignaturaId) async => await _repository.obtenerGradosConAsignacion(
+  Future<List<int>> obtenerGradosDisponibles(int anioLectivoId, int colegioId, int asignaturaId) async => _repository.obtenerGradosConAsignacion(
       anioLectivoId: anioLectivoId,
       colegioId: colegioId,
       asignaturaId: asignaturaId,
     );
 
   /// Obtiene los IDs de secciones disponibles para el año, colegio, asignatura y grado seleccionados
-  Future<List<int>> obtenerSeccionesDisponibles(int anioLectivoId, int colegioId, int asignaturaId, int gradoId) async => await _repository.obtenerSeccionesConAsignacion(
+  Future<List<int>> obtenerSeccionesDisponibles(int anioLectivoId, int colegioId, int asignaturaId, int gradoId) async => _repository.obtenerSeccionesConAsignacion(
       anioLectivoId: anioLectivoId,
       colegioId: colegioId,
       asignaturaId: asignaturaId,

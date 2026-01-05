@@ -20,6 +20,11 @@ class CustomCard extends StatelessWidget {
       onTap: onTap,
       child: Card(
         color: backgroundColor ?? AppTheme.surfaceColor,
+        elevation: 6,
+        shadowColor: AppTheme.shadowColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Padding(
           padding: padding,
           child: child,
@@ -53,22 +58,30 @@ class CustomButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor ?? AppTheme.primaryColor,
-          foregroundColor: textColor ?? Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          foregroundColor: textColor ?? AppTheme.backgroundColor,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
+          elevation: 4,
+          shadowColor: (backgroundColor ?? AppTheme.primaryColor).withOpacity(0.3),
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: AlwaysStoppedAnimation<Color>(textColor ?? AppTheme.backgroundColor),
                 ),
               )
-            : Text(label),
+            : Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
       ),
     );
 }

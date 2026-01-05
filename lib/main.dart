@@ -10,6 +10,7 @@ import 'providers/corte_evaluativo_provider.dart';
 import 'providers/indicador_evaluacion_provider.dart';
 import 'providers/criterio_evaluacion_provider.dart';
 import 'providers/estudiante_provider.dart';
+import 'providers/apariencia_provider.dart';
 import 'home_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => IndicadorEvaluacionProvider()),
         ChangeNotifierProvider(create: (_) => CriterioEvaluacionProvider()),
         ChangeNotifierProvider(create: (_) => EstudianteProvider()),
+        ChangeNotifierProvider(create: (_) => AparienciaProvider()),
       ],
       child: MaterialApp(
         title: 'Keimagrade',

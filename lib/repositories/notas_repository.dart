@@ -226,7 +226,7 @@ class NotasRepository {
         AND ea.seccion_id = ?
     ''';
 
-    List<dynamic> studentParams = [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId];
+    final List<dynamic> studentParams = [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId];
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
       studentQuery += ' AND (LOWER(e.estudiante) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)';
@@ -239,7 +239,7 @@ class NotasRepository {
 
     final studentMaps = await db.rawQuery(studentQuery, studentParams);
 
-    List<NotaDetalle> notasDetalladas = [];
+    final List<NotaDetalle> notasDetalladas = [];
 
     for (final studentMap in studentMaps) {
       final estudianteId = studentMap['id'] as int;
@@ -252,7 +252,7 @@ class NotasRepository {
         ORDER BY ie.numero
       ''', [corteId]);
 
-      List<IndicadorDetalle> indicadores = [];
+      final List<IndicadorDetalle> indicadores = [];
 
       for (final indicadorMap in indicadorMaps) {
         final indicadorId = indicadorMap['id'] as int;
@@ -266,7 +266,7 @@ class NotasRepository {
           ORDER BY cri.numero
         ''', [indicadorId]);
 
-        List<CriterioDetalle> criterios = criterioMaps.map((map) => CriterioDetalle(
+        final List<CriterioDetalle> criterios = criterioMaps.map((map) => CriterioDetalle(
           id: map['id'] as int,
           numero: map['numero'] as int,
           descripcion: map['descripcion'] as String,

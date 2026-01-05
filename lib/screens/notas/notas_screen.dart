@@ -61,10 +61,14 @@ class _NotasScreenState extends State<NotasScreen> {
         children: [
           _buildFilters(anioProvider, colegioProvider, asignaturaProvider, gradoProvider, seccionProvider, corteProvider),
           const SizedBox(height: 16),
-          _buildSearch(),
-          const SizedBox(height: 16),
           _buildContent(),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showSearchDialog,
+        backgroundColor: AppTheme.primaryColor,
+        child: const Icon(Icons.search),
+        tooltip: 'Buscar estudiante',
       ),
     );
   }
@@ -202,170 +206,179 @@ class _NotasScreenState extends State<NotasScreen> {
   ) =>
       Container(
         padding: const EdgeInsets.all(16),
-        color: AppTheme.surfaceColor,
+        color: AppTheme.backgroundColor,
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Año Lectivo',
-                    value: anioProvider.selectedAnio?.nombre ?? 'Seleccionar',
-                    items: anioProvider.anios.map((anio) => anio.nombre).toList(),
-                    onChanged: (value) async {
-                      if (value != null) {
-                        final selectedAnio = anioProvider.anios.firstWhere(
-                          (anio) => anio.nombre == value,
-                          orElse: () => anioProvider.anios.first,
-                        );
-                        anioProvider.seleccionarAnio(selectedAnio);
-                        // Reset Corte filter when changing year
-                        context.read<NotasProvider>().aplicarFiltroCorte(null);
-                        // Selección en cascada automática
-                        await _seleccionarEnCascadaDesdeAnio(selectedAnio.id!);
-                      }
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 150,
+                    child: _buildDropdown(
+                      label: 'Año Lectivo',
+                      value: anioProvider.selectedAnio?.nombre ?? 'Seleccionar',
+                      items: anioProvider.anios.map((anio) => anio.nombre).toList(),
+                      onChanged: (value) async {
+                        if (value != null) {
+                          final selectedAnio = anioProvider.anios.firstWhere(
+                            (anio) => anio.nombre == value,
+                            orElse: () => anioProvider.anios.first,
+                          );
+                          anioProvider.seleccionarAnio(selectedAnio);
+                          // Reset Corte filter when changing year
+                          context.read<NotasProvider>().aplicarFiltroCorte(null);
+                          // Selección en cascada automática
+                          await _seleccionarEnCascadaDesdeAnio(selectedAnio.id!);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Consumer<NotasProvider>(
+                    builder: (context, notasProvider, _) {
+                      final anioLectivoId = context.read<AnioLectivoProvider>().selectedAnio?.id;
+                      final cortesDisponibles = notasProvider.obtenerCortesDisponibles(anioLectivoId ?? 1);
+                      return FutureBuilder<List<CorteEvaluativo>>(
+                        future: cortesDisponibles,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(width: 150, child: Center(child: CircularProgressIndicator()));
+                          }
+
+                          final cortesFiltrados = snapshot.data ?? [];
+                          final corteSeleccionado = corteProvider.selectedCorte;
+
+                          return SizedBox(
+                            width: 150,
+                            child: _buildDropdown(
+                              label: 'Corte Evaluativo',
+                              value: corteSeleccionado?.nombre ?? 'Seleccionar',
+                              items: cortesFiltrados.map((corte) => corte.nombre).toList(),
+                              onChanged: (value) {
+                                if (value != null && cortesFiltrados.isNotEmpty) {
+                                  final selectedCorte = cortesFiltrados.firstWhere(
+                                    (corte) => corte.nombre == value,
+                                    orElse: () => cortesFiltrados.first,
+                                  );
+                                  corteProvider.seleccionarCorte(selectedCorte);
+                                  notasProvider.aplicarFiltroCorte(selectedCorte.id);
+                                }
+                              },
+                            ),
+                          );
+                        },
+                      );
                     },
                   ),
-                ),
-                const SizedBox(width: 12),
-                Consumer<NotasProvider>(
-                  builder: (context, notasProvider, _) {
-                    final anioLectivoId = context.read<AnioLectivoProvider>().selectedAnio?.id;
-                    final cortesDisponibles = notasProvider.obtenerCortesDisponibles(anioLectivoId ?? 1);
-                    return FutureBuilder<List<CorteEvaluativo>>(
-                      future: cortesDisponibles,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Expanded(child: CircularProgressIndicator());
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 150,
+                    child: _buildDropdown(
+                      label: 'Colegio',
+                      value: colegioProvider.selectedColegio?.nombre ?? 'Seleccionar',
+                      items: colegioProvider.colegios.map((colegio) => colegio.nombre).toList(),
+                      onChanged: (value) async {
+                        if (value != null) {
+                          final selectedColegio = colegioProvider.colegios.firstWhere(
+                            (colegio) => colegio.nombre == value,
+                            orElse: () => colegioProvider.colegios.first,
+                          );
+                          colegioProvider.seleccionarColegio(selectedColegio);
+
+                          // Reset Corte filter when changing colegio
+                          context.read<NotasProvider>().aplicarFiltroCorte(null);
+
+                          // Si hay año lectivo seleccionado, hacer cascada desde colegio
+                          if (anioProvider.selectedAnio != null) {
+                            await _seleccionarEnCascadaDesdeColegio(
+                              anioProvider.selectedAnio!.id!,
+                              selectedColegio.id!,
+                            );
+                          }
+                          // Si no hay año lectivo pero hay colegio, buscar años disponibles para este colegio
+                          else {
+                            await _seleccionarAnioCercanoDesdeColegio(selectedColegio.id!);
+                          }
                         }
-
-                        final cortesFiltrados = snapshot.data ?? [];
-                        final corteSeleccionado = corteProvider.selectedCorte;
-
-                        return Expanded(
-                          child: _buildDropdown(
-                            label: 'Corte Evaluativo',
-                            value: corteSeleccionado?.nombre ?? 'Seleccionar',
-                            items: cortesFiltrados.map((corte) => corte.nombre).toList(),
-                            onChanged: (value) {
-                              if (value != null && cortesFiltrados.isNotEmpty) {
-                                final selectedCorte = cortesFiltrados.firstWhere(
-                                  (corte) => corte.nombre == value,
-                                  orElse: () => cortesFiltrados.first,
-                                );
-                                corteProvider.seleccionarCorte(selectedCorte);
-                                notasProvider.aplicarFiltroCorte(selectedCorte.id);
-                              }
-                            },
-                          ),
-                        );
                       },
-                    );
-                  },
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Colegio',
-                    value: colegioProvider.selectedColegio?.nombre ?? 'Seleccionar',
-                    items: colegioProvider.colegios.map((colegio) => colegio.nombre).toList(),
-                    onChanged: (value) async {
-                      if (value != null) {
-                        final selectedColegio = colegioProvider.colegios.firstWhere(
-                          (colegio) => colegio.nombre == value,
-                          orElse: () => colegioProvider.colegios.first,
-                        );
-                        colegioProvider.seleccionarColegio(selectedColegio);
-
-                        // Reset Corte filter when changing colegio
-                        context.read<NotasProvider>().aplicarFiltroCorte(null);
-
-                        // Si hay año lectivo seleccionado, hacer cascada desde colegio
-                        if (anioProvider.selectedAnio != null) {
-                          await _seleccionarEnCascadaDesdeColegio(
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 150,
+                    child: _buildDropdown(
+                      label: 'Asignatura',
+                      value: asignaturaProvider.selectedAsignatura?.nombre ?? 'Seleccionar',
+                      items: asignaturaProvider.asignaturas.map((a) => a.nombre).toList(),
+                      onChanged: (value) async {
+                        if (value != null &&
+                            anioProvider.selectedAnio != null &&
+                            colegioProvider.selectedColegio != null) {
+                          final selected = asignaturaProvider.asignaturas.firstWhere(
+                            (a) => a.nombre == value,
+                            orElse: () => asignaturaProvider.asignaturas.first,
+                          );
+                          asignaturaProvider.seleccionarAsignatura(selected);
+                          // Selección en cascada
+                          await _seleccionarEnCascadaDesdeAsignatura(
                             anioProvider.selectedAnio!.id!,
-                            selectedColegio.id!,
+                            colegioProvider.selectedColegio!.id!,
+                            selected.id!,
                           );
                         }
-                        // Si no hay año lectivo pero hay colegio, buscar años disponibles para este colegio
-                        else {
-                          await _seleccionarAnioCercanoDesdeColegio(selectedColegio.id!);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 150,
+                    child: _buildDropdown(
+                      label: 'Grado',
+                      value: gradoProvider.selectedGrado?.nombre ?? 'Seleccionar',
+                      items: gradoProvider.grados.map((g) => g.nombre).toList(),
+                      onChanged: (value) async {
+                        if (value != null &&
+                            anioProvider.selectedAnio != null &&
+                            colegioProvider.selectedColegio != null &&
+                            asignaturaProvider.selectedAsignatura != null) {
+                          final selected = gradoProvider.grados.firstWhere(
+                            (g) => g.nombre == value,
+                            orElse: () => gradoProvider.grados.first,
+                          );
+                          gradoProvider.seleccionarGrado(selected);
+                          // Selección en cascada
+                          await _seleccionarEnCascadaDesdeGrado(
+                            anioProvider.selectedAnio!.id!,
+                            colegioProvider.selectedColegio!.id!,
+                            asignaturaProvider.selectedAsignatura!.id!,
+                            selected.id!,
+                          );
                         }
-                      }
-                    },
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Asignatura',
-                    value: asignaturaProvider.selectedAsignatura?.nombre ?? 'Seleccionar',
-                    items: asignaturaProvider.asignaturas.map((a) => a.nombre).toList(),
-                    onChanged: (value) async {
-                      if (value != null &&
-                          anioProvider.selectedAnio != null &&
-                          colegioProvider.selectedColegio != null) {
-                        final selected = asignaturaProvider.asignaturas.firstWhere(
-                          (a) => a.nombre == value,
-                          orElse: () => asignaturaProvider.asignaturas.first,
-                        );
-                        asignaturaProvider.seleccionarAsignatura(selected);
-                        // Selección en cascada
-                        await _seleccionarEnCascadaDesdeAsignatura(
-                          anioProvider.selectedAnio!.id!,
-                          colegioProvider.selectedColegio!.id!,
-                          selected.id!,
-                        );
-                      }
-                    },
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 100,
+                    child: _buildDropdown(
+                      label: 'Sección',
+                      value: seccionProvider.selectedSeccion?.letra ?? 'Seleccionar',
+                      items: seccionProvider.secciones.map((s) => s.letra).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          final selected = seccionProvider.secciones.firstWhere(
+                            (s) => s.letra == value,
+                            orElse: () => seccionProvider.secciones.first,
+                          );
+                          seccionProvider.seleccionarSeccion(selected);
+                          _aplicarFiltros();
+                        }
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Grado',
-                    value: gradoProvider.selectedGrado?.nombre ?? 'Seleccionar',
-                    items: gradoProvider.grados.map((g) => g.nombre).toList(),
-                    onChanged: (value) async {
-                      if (value != null &&
-                          anioProvider.selectedAnio != null &&
-                          colegioProvider.selectedColegio != null &&
-                          asignaturaProvider.selectedAsignatura != null) {
-                        final selected = gradoProvider.grados.firstWhere(
-                          (g) => g.nombre == value,
-                          orElse: () => gradoProvider.grados.first,
-                        );
-                        gradoProvider.seleccionarGrado(selected);
-                        // Selección en cascada
-                        await _seleccionarEnCascadaDesdeGrado(
-                          anioProvider.selectedAnio!.id!,
-                          colegioProvider.selectedColegio!.id!,
-                          asignaturaProvider.selectedAsignatura!.id!,
-                          selected.id!,
-                        );
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Sección',
-                    value: seccionProvider.selectedSeccion?.letra ?? 'Seleccionar',
-                    items: seccionProvider.secciones.map((s) => s.letra).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        final selected = seccionProvider.secciones.firstWhere(
-                          (s) => s.letra == value,
-                          orElse: () => seccionProvider.secciones.first,
-                        );
-                        seccionProvider.seleccionarSeccion(selected);
-                        _aplicarFiltros();
-                      }
-                    },
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             // Botón para limpiar filtros
@@ -404,52 +417,88 @@ class _NotasScreenState extends State<NotasScreen> {
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
-        items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+        items: items.map((item) => DropdownMenuItem(
+          value: item,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 200),
+            child: Text(
+              item,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+            ),
+          ),
+        )).toList(),
         onChanged: onChanged,
+        isExpanded: true,
       );
 
-  Widget _buildSearch() => Consumer<NotasProvider>(
-        builder: (context, provider, _) => Container(
-          padding: const EdgeInsets.all(16),
-          color: AppTheme.surfaceColor,
-          child: Row(
-            children: [
-              Expanded(
-                child: CustomTextField(
-                  label: 'Buscar estudiante',
-                  controller: _searchController,
-                  hint: 'Nombre o número de identidad',
-                  prefixIcon: const Icon(Icons.search),
-                  onChanged: (value) {
-                    if (provider.todosLosFiltrosCompletosConCorte()) {
-                      // Use detailed search when Corte is selected
-                      context.read<NotasProvider>().buscarDetalladas(value);
-                    } else {
-                      // Use regular search otherwise
-                      context.read<NotasProvider>().buscar(value);
-                    }
-                  },
-                ),
+  void _showSearchDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        title: Row(
+          children: [
+            const Icon(Icons.search, color: AppTheme.primaryColor),
+            const SizedBox(width: 8),
+            const Text(
+              'Buscar Estudiante',
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(width: 12),
-              IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: _searchController.text.isNotEmpty
-                    ? () {
-                        _searchController.clear();
-                        if (provider.todosLosFiltrosCompletosConCorte()) {
-                          context.read<NotasProvider>().buscarDetalladas('');
-                        } else {
-                          context.read<NotasProvider>().limpiarBusqueda();
-                        }
-                      }
-                    : null,
-                color: _searchController.text.isNotEmpty ? AppTheme.primaryColor : AppTheme.textTertiary,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-      );
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CustomTextField(
+              label: 'Buscar estudiante',
+              controller: _searchController,
+              hint: 'Nombre o número de identidad',
+              prefixIcon: const Icon(Icons.search),
+              onChanged: (value) {
+                final provider = context.read<NotasProvider>();
+                if (provider.todosLosFiltrosCompletosConCorte()) {
+                  // Use detailed search when Corte is selected
+                  provider.buscarDetalladas(value);
+                } else {
+                  // Use regular search otherwise
+                  provider.buscar(value);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cerrar',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+          if (_searchController.text.isNotEmpty)
+            TextButton(
+              onPressed: () {
+                _searchController.clear();
+                final provider = context.read<NotasProvider>();
+                if (provider.todosLosFiltrosCompletosConCorte()) {
+                  provider.buscarDetalladas('');
+                } else {
+                  provider.limpiarBusqueda();
+                }
+              },
+              child: const Text(
+                'Limpiar',
+                style: TextStyle(color: AppTheme.primaryColor),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildNotasList() => Consumer<NotasProvider>(
         builder: (context, provider, _) {
@@ -462,16 +511,16 @@ class _NotasScreenState extends State<NotasScreen> {
           }
 
           if (provider.notas.isEmpty) {
-            return Center(
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const EmptyState(
+                  EmptyState(
                     message: 'No hay notas registradas',
                     icon: Icons.grade,
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
+                  SizedBox(height: 24),
+                  Text(
                     'Configure los filtros para ver las notas',
                     style: TextStyle(color: AppTheme.textSecondary),
                   ),
@@ -618,16 +667,16 @@ class _NotasScreenState extends State<NotasScreen> {
           }
 
           if (provider.notasDetalladas.isEmpty) {
-            return Center(
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const EmptyState(
+                  EmptyState(
                     message: 'No hay notas registradas para este corte',
                     icon: Icons.table_chart,
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
+                  SizedBox(height: 24),
+                  Text(
                     'Configure los filtros incluyendo el corte evaluativo',
                     style: TextStyle(color: AppTheme.textSecondary),
                   ),
@@ -647,7 +696,7 @@ class _NotasScreenState extends State<NotasScreen> {
                     columnWidths: _buildTableColumnWidths(provider.notasDetalladas.first),
                     children: [
                       _buildTableHeader(provider.notasDetalladas.first),
-                      ...provider.notasDetalladas.map((nota) => _buildTableRow(nota)),
+                      ...provider.notasDetalladas.map(_buildTableRow),
                     ],
                   ),
                 ),

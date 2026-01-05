@@ -179,7 +179,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 Consumer<AnioLectivoProvider>(
                   builder: (context, provider, _) =>
                       DropdownButtonFormField<int>(
-                    value: selectedAnioId,
+                    initialValue: selectedAnioId,
                     decoration: InputDecoration(
                       labelText: 'Año Lectivo',
                       border: OutlineInputBorder(
@@ -204,7 +204,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 Consumer<ColegioProvider>(
                   builder: (context, provider, _) =>
                       DropdownButtonFormField<int>(
-                    value: selectedColegioId,
+                    initialValue: selectedColegioId,
                     decoration: InputDecoration(
                       labelText: 'Colegio',
                       border: OutlineInputBorder(
@@ -255,7 +255,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                                           .add(asignatura.id!);
                                     } else {
                                       selectedAsignaturasIds
-                                          .remove(asignatura.id!);
+                                          .remove(asignatura.id);
                                     }
                                   });
                                 },
@@ -272,7 +272,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 Consumer<GradoProvider>(
                   builder: (context, provider, _) =>
                       DropdownButtonFormField<int>(
-                    value: selectedGradoId,
+                    initialValue: selectedGradoId,
                     decoration: InputDecoration(
                       labelText: 'Grado',
                       border: OutlineInputBorder(
@@ -297,7 +297,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 Consumer<SeccionProvider>(
                   builder: (context, provider, _) =>
                       DropdownButtonFormField<int>(
-                    value: selectedSeccionId,
+                    initialValue: selectedSeccionId,
                     decoration: InputDecoration(
                       labelText: 'Sección',
                       border: OutlineInputBorder(
@@ -902,141 +902,149 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
   ) =>
       Container(
         padding: const EdgeInsets.all(16),
-        color: AppTheme.surfaceColor,
+        color: AppTheme.backgroundColor,
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Año Lectivo',
-                    value: anioProvider.selectedAnio?.nombre ?? 'Seleccionar',
-                    items:
-                        anioProvider.anios.map((anio) => anio.nombre).toList(),
-                    onChanged: (value) async {
-                      if (value != null) {
-                        final selectedAnio = anioProvider.anios.firstWhere(
-                          (anio) => anio.nombre == value,
-                          orElse: () => anioProvider.anios.first,
-                        );
-                        anioProvider.seleccionarAnio(selectedAnio);
-                        // Selección en cascada automática
-                        await _seleccionarEnCascadaDesdeAnio(selectedAnio.id!);
-                      }
-                    },
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 150,
+                    child: _buildDropdown(
+                      label: 'Año Lectivo',
+                      value: anioProvider.selectedAnio?.nombre ?? 'Seleccionar',
+                      items:
+                          anioProvider.anios.map((anio) => anio.nombre).toList(),
+                      onChanged: (value) async {
+                        if (value != null) {
+                          final selectedAnio = anioProvider.anios.firstWhere(
+                            (anio) => anio.nombre == value,
+                            orElse: () => anioProvider.anios.first,
+                          );
+                          anioProvider.seleccionarAnio(selectedAnio);
+                          // Selección en cascada automática
+                          await _seleccionarEnCascadaDesdeAnio(selectedAnio.id!);
+                        }
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Colegio',
-                    value: colegioProvider.selectedColegio?.nombre ??
-                        'Seleccionar',
-                    items: colegioProvider.colegios
-                        .map((colegio) => colegio.nombre)
-                        .toList(),
-                    onChanged: (value) async {
-                      if (value != null) {
-                        final selectedColegio =
-                            colegioProvider.colegios.firstWhere(
-                          (colegio) => colegio.nombre == value,
-                          orElse: () => colegioProvider.colegios.first,
-                        );
-                        colegioProvider.seleccionarColegio(selectedColegio);
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 150,
+                    child: _buildDropdown(
+                      label: 'Colegio',
+                      value: colegioProvider.selectedColegio?.nombre ??
+                          'Seleccionar',
+                      items: colegioProvider.colegios
+                          .map((colegio) => colegio.nombre)
+                          .toList(),
+                      onChanged: (value) async {
+                        if (value != null) {
+                          final selectedColegio =
+                              colegioProvider.colegios.firstWhere(
+                            (colegio) => colegio.nombre == value,
+                            orElse: () => colegioProvider.colegios.first,
+                          );
+                          colegioProvider.seleccionarColegio(selectedColegio);
 
-                        // Si hay año lectivo seleccionado, hacer cascada desde colegio
-                        if (anioProvider.selectedAnio != null) {
-                          await _seleccionarEnCascadaDesdeColegio(
+                          // Si hay año lectivo seleccionado, hacer cascada desde colegio
+                          if (anioProvider.selectedAnio != null) {
+                            await _seleccionarEnCascadaDesdeColegio(
+                              anioProvider.selectedAnio!.id!,
+                              selectedColegio.id!,
+                            );
+                          }
+                          // Si no hay año lectivo pero hay colegio, buscar años disponibles para este colegio
+                          else {
+                            await _seleccionarAnioCercanoDesdeColegio(
+                                selectedColegio.id!);
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 150,
+                    child: _buildDropdown(
+                      label: 'Asignatura',
+                      value: asignaturaProvider.selectedAsignatura?.nombre ??
+                          'Seleccionar',
+                      items: asignaturaProvider.asignaturas
+                          .map((a) => a.nombre)
+                          .toList(),
+                      onChanged: (value) async {
+                        if (value != null &&
+                            anioProvider.selectedAnio != null &&
+                            colegioProvider.selectedColegio != null) {
+                          final selected =
+                              asignaturaProvider.asignaturas.firstWhere(
+                            (a) => a.nombre == value,
+                            orElse: () => asignaturaProvider.asignaturas.first,
+                          );
+                          asignaturaProvider.seleccionarAsignatura(selected);
+                          // Selección en cascada
+                          await _seleccionarEnCascadaDesdeAsignatura(
                             anioProvider.selectedAnio!.id!,
-                            selectedColegio.id!,
+                            colegioProvider.selectedColegio!.id!,
+                            selected.id!,
                           );
                         }
-                        // Si no hay año lectivo pero hay colegio, buscar años disponibles para este colegio
-                        else {
-                          await _seleccionarAnioCercanoDesdeColegio(
-                              selectedColegio.id!);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 150,
+                    child: _buildDropdown(
+                      label: 'Grado',
+                      value: gradoProvider.selectedGrado?.nombre ?? 'Seleccionar',
+                      items: gradoProvider.grados.map((g) => g.nombre).toList(),
+                      onChanged: (value) async {
+                        if (value != null &&
+                            anioProvider.selectedAnio != null &&
+                            colegioProvider.selectedColegio != null &&
+                            asignaturaProvider.selectedAsignatura != null) {
+                          final selected = gradoProvider.grados.firstWhere(
+                            (g) => g.nombre == value,
+                            orElse: () => gradoProvider.grados.first,
+                          );
+                          gradoProvider.seleccionarGrado(selected);
+                          // Selección en cascada
+                          await _seleccionarEnCascadaDesdeGrado(
+                            anioProvider.selectedAnio!.id!,
+                            colegioProvider.selectedColegio!.id!,
+                            asignaturaProvider.selectedAsignatura!.id!,
+                            selected.id!,
+                          );
                         }
-                      }
-                    },
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Asignatura',
-                    value: asignaturaProvider.selectedAsignatura?.nombre ??
-                        'Seleccionar',
-                    items: asignaturaProvider.asignaturas
-                        .map((a) => a.nombre)
-                        .toList(),
-                    onChanged: (value) async {
-                      if (value != null &&
-                          anioProvider.selectedAnio != null &&
-                          colegioProvider.selectedColegio != null) {
-                        final selected =
-                            asignaturaProvider.asignaturas.firstWhere(
-                          (a) => a.nombre == value,
-                          orElse: () => asignaturaProvider.asignaturas.first,
-                        );
-                        asignaturaProvider.seleccionarAsignatura(selected);
-                        // Selección en cascada
-                        await _seleccionarEnCascadaDesdeAsignatura(
-                          anioProvider.selectedAnio!.id!,
-                          colegioProvider.selectedColegio!.id!,
-                          selected.id!,
-                        );
-                      }
-                    },
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 100,
+                    child: _buildDropdown(
+                      label: 'Sección',
+                      value:
+                          seccionProvider.selectedSeccion?.letra ?? 'Seleccionar',
+                      items:
+                          seccionProvider.secciones.map((s) => s.letra).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          final selected = seccionProvider.secciones.firstWhere(
+                            (s) => s.letra == value,
+                            orElse: () => seccionProvider.secciones.first,
+                          );
+                          seccionProvider.seleccionarSeccion(selected);
+                          _aplicarFiltros();
+                        }
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Grado',
-                    value: gradoProvider.selectedGrado?.nombre ?? 'Seleccionar',
-                    items: gradoProvider.grados.map((g) => g.nombre).toList(),
-                    onChanged: (value) async {
-                      if (value != null &&
-                          anioProvider.selectedAnio != null &&
-                          colegioProvider.selectedColegio != null &&
-                          asignaturaProvider.selectedAsignatura != null) {
-                        final selected = gradoProvider.grados.firstWhere(
-                          (g) => g.nombre == value,
-                          orElse: () => gradoProvider.grados.first,
-                        );
-                        gradoProvider.seleccionarGrado(selected);
-                        // Selección en cascada
-                        await _seleccionarEnCascadaDesdeGrado(
-                          anioProvider.selectedAnio!.id!,
-                          colegioProvider.selectedColegio!.id!,
-                          asignaturaProvider.selectedAsignatura!.id!,
-                          selected.id!,
-                        );
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Sección',
-                    value:
-                        seccionProvider.selectedSeccion?.letra ?? 'Seleccionar',
-                    items:
-                        seccionProvider.secciones.map((s) => s.letra).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        final selected = seccionProvider.secciones.firstWhere(
-                          (s) => s.letra == value,
-                          orElse: () => seccionProvider.secciones.first,
-                        );
-                        seccionProvider.seleccionarSeccion(selected);
-                        _aplicarFiltros();
-                      }
-                    },
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             // Botón para limpiar filtros
@@ -1077,15 +1085,24 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
-        items: items
-            .map((item) => DropdownMenuItem(value: item, child: Text(item)))
-            .toList(),
+        items: items.map((item) => DropdownMenuItem(
+          value: item,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 200),
+            child: Text(
+              item,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+            ),
+          ),
+        )).toList(),
         onChanged: onChanged,
+        isExpanded: true,
       );
 
   Widget _buildSearchAndActions() => Container(
         padding: const EdgeInsets.all(16),
-        color: AppTheme.surfaceColor,
+        color: AppTheme.backgroundColor,
         child: Column(
           children: [
             Row(

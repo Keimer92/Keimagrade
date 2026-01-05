@@ -8,7 +8,7 @@ import '../repositories/estudiante_repository.dart';
 class NotasProvider extends ChangeNotifier {
   final NotasRepository _repository = NotasRepository();
   final EstudianteRepository _estudianteRepository = EstudianteRepository();
-  List<Nota> _notas = [];
+  final List<Nota> _notas = [];
   List<Nota> _notasFiltradas = [];
   List<NotaDetalle> _notasDetalladas = [];
   bool _isLoading = false;
@@ -36,22 +36,22 @@ class NotasProvider extends ChangeNotifier {
 
   /// Obtiene los IDs de años lectivos disponibles para el colegio seleccionado
   Future<List<int>> obtenerAniosDisponiblesDesdeColegio(int colegioId) async =>
-      await _repository.obtenerAniosConNotasDesdeColegio(colegioId);
+      _repository.obtenerAniosConNotasDesdeColegio(colegioId);
 
   /// Obtiene los IDs de colegios disponibles para el año lectivo seleccionado
   Future<List<int>> obtenerColegiosDisponibles(int anioLectivoId) async =>
-      await _estudianteRepository.obtenerColegiosConAsignacion(anioLectivoId: anioLectivoId);
+      _estudianteRepository.obtenerColegiosConAsignacion(anioLectivoId: anioLectivoId);
 
   /// Obtiene los IDs de asignaturas disponibles para el año y colegio seleccionados
   Future<List<int>> obtenerAsignaturasDisponibles(int anioLectivoId, int colegioId) async =>
-      await _estudianteRepository.obtenerAsignaturasConAsignacion(
+      _estudianteRepository.obtenerAsignaturasConAsignacion(
         anioLectivoId: anioLectivoId,
         colegioId: colegioId,
       );
 
   /// Obtiene los IDs de grados disponibles para el año, colegio y asignatura seleccionados
   Future<List<int>> obtenerGradosDisponibles(int anioLectivoId, int colegioId, int asignaturaId) async =>
-      await _estudianteRepository.obtenerGradosConAsignacion(
+      _estudianteRepository.obtenerGradosConAsignacion(
         anioLectivoId: anioLectivoId,
         colegioId: colegioId,
         asignaturaId: asignaturaId,
@@ -59,7 +59,7 @@ class NotasProvider extends ChangeNotifier {
 
   /// Obtiene los IDs de secciones disponibles para el año, colegio, asignatura y grado seleccionados
   Future<List<int>> obtenerSeccionesDisponibles(int anioLectivoId, int colegioId, int asignaturaId, int gradoId) async =>
-      await _estudianteRepository.obtenerSeccionesConAsignacion(
+      _estudianteRepository.obtenerSeccionesConAsignacion(
         anioLectivoId: anioLectivoId,
         colegioId: colegioId,
         asignaturaId: asignaturaId,
@@ -67,7 +67,7 @@ class NotasProvider extends ChangeNotifier {
       );
 
   /// Obtiene los cortes evaluativos que tienen indicadores configurados para un año lectivo
-  Future<List<CorteEvaluativo>> obtenerCortesDisponibles(int anioLectivoId) async => await _repository.obtenerCortesPorAnioLectivo(anioLectivoId);
+  Future<List<CorteEvaluativo>> obtenerCortesDisponibles(int anioLectivoId) async => _repository.obtenerCortesPorAnioLectivo(anioLectivoId);
 
   Future<void> cargarNotas() async {
     _isLoading = true;
@@ -163,7 +163,7 @@ class NotasProvider extends ChangeNotifier {
 
   /// Carga notas detalladas para tabla Excel
   Future<void> cargarNotasDetalladas() async {
-    if (_corteIdFiltro == null || !(_todosLosFiltrosCompletos())) {
+    if (_corteIdFiltro == null || !_todosLosFiltrosCompletos()) {
       _notasDetalladas = [];
       notifyListeners();
       return;

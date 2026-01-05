@@ -200,24 +200,84 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
       ),
       body: Column(
         children: [
-          // Filtros
-          _buildFilters(asignaturaProvider, anioProvider),
-          const SizedBox(height: 16),
-          
-          // Pestañas de cortes
+          // Filtros combinados con pestañas
           Container(
-            color: AppTheme.surfaceColor,
-            child: TabBar(
-              controller: _tabController,
-              tabs: const [
-                Tab(text: '1er Corte'),
-                Tab(text: '2do Corte'),
-                Tab(text: '3er Corte'),
-                Tab(text: '4to Corte'),
+            color: AppTheme.backgroundColor,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Año Lectivo (mostrar pero no editable en evaluaciones, usa el seleccionado globalmente)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Año Lectivo: ${anioProvider.selectedAnio?.anio ?? "No seleccionado"}',
+                        style: const TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Dropdown de asignatura a la izquierda y tabs de corte a la derecha en la misma fila
+                Row(
+                  children: [
+                    // Asignatura dropdown (izquierda)
+                    Expanded(
+                      flex: 2,
+                      child: _buildDropdown(
+                        label: 'Asignatura',
+                        value: asignaturaProvider.selectedAsignatura?.nombre ?? 'Seleccionar',
+                        items: asignaturaProvider.asignaturas.map((asignatura) => asignatura.nombre).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            final selectedAsignatura = asignaturaProvider.asignaturas.firstWhere(
+                              (asignatura) => asignatura.nombre == value,
+                              orElse: () => asignaturaProvider.asignaturas.first,
+                            );
+                            asignaturaProvider.seleccionarAsignatura(selectedAsignatura);
+                            // Recargar datos cuando cambie la asignatura
+                            setState(() {});
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+
+                    // Pestañas de cortes (derecha)
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        height: 48, // Altura aproximada del dropdown
+                        child: TabBar(
+                          controller: _tabController,
+                          tabs: const [
+                            Tab(text: '1er Corte'),
+                            Tab(text: '2do Corte'),
+                            Tab(text: '3er Corte'),
+                            Tab(text: '4to Corte'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-          
+
           // Contenido de la pestaña seleccionada
           Expanded(
             child: TabBarView(
@@ -237,7 +297,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
 
   Widget _buildFilters(AsignaturaProvider asignaturaProvider, AnioLectivoProvider anioProvider) => Container(
       padding: const EdgeInsets.all(16),
-      color: AppTheme.surfaceColor,
+      color: AppTheme.backgroundColor,
       child: Column(
         children: [
           // Año Lectivo (mostrar pero no editable en evaluaciones, usa el seleccionado globalmente)
@@ -251,11 +311,11 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
             ),
             child: Row(
               children: [
-                Icon(Icons.calendar_today, color: AppTheme.primaryColor),
+                const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
                 const SizedBox(width: 12),
                 Text(
                   'Año Lectivo: ${anioProvider.selectedAnio?.anio ?? "No seleccionado"}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppTheme.primaryColor,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -362,7 +422,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (_indicadorErrores[numeroIndicador - 1])
-                    Icon(
+                    const Icon(
                       Icons.warning,
                       size: 14,
                       color: AppTheme.errorColor,
@@ -467,7 +527,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
               ),
               if (tieneError) ...[
                 const SizedBox(width: 8),
-                Icon(
+                const Icon(
                   Icons.warning,
                   size: 16,
                   color: AppTheme.errorColor,
@@ -515,7 +575,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
                 ),
                 if (tieneError) ...[
                   const SizedBox(height: 4),
-                  Text(
+                  const Text(
                     'Cada criterio no puede exceder 8 puntos',
                     style: TextStyle(
                       color: AppTheme.errorColor,
@@ -534,15 +594,15 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
                   Icon(
                     Icons.text_fields,
                     size: 16,
                     color: AppTheme.primaryColor,
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
+                  SizedBox(width: 8),
+                  Text(
                     'Evaluación Cualitativa',
                     style: TextStyle(
                       color: AppTheme.primaryColor,
