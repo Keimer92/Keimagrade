@@ -22,7 +22,7 @@ class DatabaseHelper {
     final String path = join(await getDatabasesPath(), 'keimagrade.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -135,12 +135,12 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE estudiantes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT NOT NULL,
-        apellido TEXT NOT NULL,
+        estudiante TEXT NOT NULL,
         numero_identidad TEXT,
         telefono TEXT,
         email TEXT,
         direccion TEXT,
+        sexo TEXT,
         activo INTEGER NOT NULL DEFAULT 1
       )
     ''');
@@ -255,8 +255,19 @@ class DatabaseHelper {
     await db.delete('grados');
     await db.delete('secciones');
 
-    // Close the database connection to force a fresh connection on next access
-    await close();
+    // Note: Database connection remains open for app continuity
+  }
+
+  Future<void> clearAllStudents() async {
+    final db = await database;
+    // Delete in correct order to respect foreign key constraints
+    await db.delete('criterios_evaluacion');
+    await db.delete('indicadores_evaluacion');
+    await db.delete('cortes_evaluativos');
+    await db.delete('estudiantes_asignaciones');
+    await db.delete('estudiantes');
+
+    // Note: Database connection remains open for app continuity
   }
 
   Future<void> resetDatabase() async {
@@ -320,6 +331,71 @@ class DatabaseHelper {
         await db.execute('CREATE UNIQUE INDEX idx_criterios_anio_indicador_numero ON criterios_evaluacion(anio_lectivo_id, indicadorId, numero)');
       } catch (e) {
         // Ignorar errores si los índices ya existen
+      }
+    }
+
+    if (oldVersion < 4) {
+      // Agregar columna sexo a la tabla estudiantes
+      try {
+        await db.execute('ALTER TABLE estudiantes ADD COLUMN sexo TEXT');
+      } catch (e) {
+        // Ignorar si la columna ya existe
+      }
+    }
+
+    if (oldVersion < 5) {
+      // Migrar de columnas 'nombre' y 'apellido' a columna 'estudiante'
+      try {
+        // Primero agregar la nueva columna
+        await db.execute('ALTER TABLE estudiantes ADD COLUMN estudiante_temp TEXT');
+
+        // Migrar los datos existentes combinando nombre y apellido
+        await db.execute('''
+          UPDATE estudiantes
+          SET estudiante_temp = TRIM(COALESCE(nombre, '') || ' ' || COALESCE(apellido, ''))
+          WHERE estudiante_temp IS NULL
+        ''');
+
+        // Eliminar las columnas viejas
+        await db.execute('ALTER TABLE estudiantes DROP COLUMN nombre');
+        await db.execute('ALTER TABLE estudiantes DROP COLUMN apellido');
+
+        // Renombrar la columna temporal
+        await db.execute('ALTER TABLE estudiantes RENAME COLUMN estudiante_temp TO estudiante');
+
+        // Hacer la columna NOT NULL
+        await db.execute('''
+          CREATE TABLE estudiantes_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            estudiante TEXT NOT NULL,
+            numero_identidad TEXT,
+            telefono TEXT,
+            email TEXT,
+            direccion TEXT,
+            sexo TEXT,
+            activo INTEGER NOT NULL DEFAULT 1
+          )
+        ''');
+
+        // Copiar datos a la nueva tabla
+        await db.execute('''
+          INSERT INTO estudiantes_new (id, estudiante, numero_identidad, telefono, email, direccion, sexo, activo)
+          SELECT id, estudiante, numero_identidad, telefono, email, direccion, sexo, activo
+          FROM estudiantes
+        ''');
+
+        // Reemplazar la tabla antigua
+        await db.execute('DROP TABLE estudiantes');
+        await db.execute('ALTER TABLE estudiantes_new RENAME TO estudiantes');
+
+      } catch (e) {
+        print('Error durante migración a estudiante único: $e');
+        // Si hay error, intentar crear la columna estudiante si no existe
+        try {
+          await db.execute('ALTER TABLE estudiantes ADD COLUMN estudiante TEXT NOT NULL DEFAULT \'\'');
+        } catch (e2) {
+          // Ignorar si ya existe
+        }
       }
     }
   }

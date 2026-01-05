@@ -42,6 +42,14 @@ class DebuggingTab extends StatelessWidget {
               subtitle: 'Crear nueva base de datos con datos por defecto',
               onTap: () => _showResetDatabaseDialog(context),
             ),
+            const SizedBox(height: 16),
+            _buildSettingOption(
+              context: context,
+              icon: Icons.person_off,
+              title: 'Borrar todos los estudiantes',
+              subtitle: 'Eliminar todos los estudiantes y sus datos relacionados',
+              onTap: () => _showClearStudentsDialog(context),
+            ),
           ],
         ),
       );
@@ -230,6 +238,47 @@ class DebuggingTab extends StatelessWidget {
           context: context,
           title: 'Error',
           content: Text('Ocurrió un error al borrar la base de datos: $e'),
+        );
+      }
+    }
+  }
+
+  void _showClearStudentsDialog(BuildContext context) {
+    DialogHelper.showCustomDialog(
+      context: context,
+      title: 'Borrar Todos los Estudiantes',
+      content: const Text(
+        '¿Estás seguro de que deseas borrar todos los estudiantes?\n\nEsta acción eliminará permanentemente todos los estudiantes, sus asignaciones, cortes evaluativos, indicadores y criterios de evaluación. Esta operación no se puede deshacer.',
+        style: TextStyle(color: AppTheme.textSecondary),
+      ),
+      confirmText: 'Borrar Estudiantes',
+      cancelText: 'Cancelar',
+      onConfirm: () => _clearStudents(context),
+    );
+  }
+
+  void _clearStudents(BuildContext context) async {
+    try {
+      final databaseHelper = DatabaseHelper();
+      await databaseHelper.clearAllStudents();
+
+      // Small delay to ensure database operation completes and connection is closed
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Show success message
+      if (context.mounted) {
+        DialogHelper.showSuccessMessage(
+          context: context,
+          message: 'Todos los estudiantes han sido eliminados exitosamente',
+        );
+      }
+    } catch (e) {
+      // Show error message
+      if (context.mounted) {
+        DialogHelper.showCustomDialog(
+          context: context,
+          title: 'Error',
+          content: Text('Ocurrió un error al borrar los estudiantes: $e'),
         );
       }
     }

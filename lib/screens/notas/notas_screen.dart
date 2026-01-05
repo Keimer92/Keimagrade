@@ -168,6 +168,30 @@ class _NotasScreenState extends State<NotasScreen> {
     _aplicarFiltros();
   }
 
+  /// Busca y selecciona el año lectivo más cercano disponible para un colegio específico
+  Future<void> _seleccionarAnioCercanoDesdeColegio(int colegioId) async {
+    final notasProvider = context.read<NotasProvider>();
+    final anioProvider = context.read<AnioLectivoProvider>();
+
+    // Buscar años disponibles para este colegio
+    final aniosIds = await notasProvider.obtenerAniosDisponiblesDesdeColegio(colegioId);
+
+    if (aniosIds.isNotEmpty) {
+      // Seleccionar el año más reciente disponible
+      final anioDisponible = anioProvider.anios.firstWhere(
+        (a) => aniosIds.contains(a.id),
+        orElse: () => anioProvider.anios.firstWhere(
+          (a) => aniosIds.contains(a.id),
+          orElse: () => anioProvider.anios.first,
+        ),
+      );
+      anioProvider.seleccionarAnio(anioDisponible);
+
+      // Continuar la cascada desde colegio con el año seleccionado
+      await _seleccionarEnCascadaDesdeColegio(anioDisponible.id!, colegioId);
+    }
+  }
+
   Widget _buildFilters(
     AnioLectivoProvider anioProvider,
     ColegioProvider colegioProvider,
@@ -203,73 +227,39 @@ class _NotasScreenState extends State<NotasScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 16),
-                Consumer<NotasProvider>(
-                  builder: (context, notasProvider, _) {
-                    final cortesDisponibles = notasProvider.obtenerCortesDisponibles(context.read<AnioLectivoProvider>().selectedAnio?.id ?? 1);
-                    return FutureBuilder<List<CorteEvaluativo>>(
-                      future: cortesDisponibles,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Expanded(child: CircularProgressIndicator());
-                        }
-
-                        final cortesFiltrados = snapshot.data ?? [];
-
-                        return Expanded(
-                          child: _buildDropdown(
-                            label: 'Corte Evaluativo',
-                            value: corteProvider.selectedCorte?.nombre ?? 'Seleccionar',
-                            items: cortesFiltrados.map((corte) => corte.nombre).toList(),
-                            onChanged: (value) {
-                              if (value != null && cortesFiltrados.isNotEmpty) {
-                                final selectedCorte = cortesFiltrados.firstWhere(
-                                  (corte) => corte.nombre == value,
-                                  orElse: () => cortesFiltrados.first,
-                                );
-                                corteProvider.seleccionarCorte(selectedCorte);
-                                notasProvider.aplicarFiltroCorte(selectedCorte.id);
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildDropdown(
                     label: 'Colegio',
                     value: colegioProvider.selectedColegio?.nombre ?? 'Seleccionar',
                     items: colegioProvider.colegios.map((colegio) => colegio.nombre).toList(),
                     onChanged: (value) async {
-                      if (value != null && anioProvider.selectedAnio != null) {
+                      if (value != null) {
                         final selectedColegio = colegioProvider.colegios.firstWhere(
                           (colegio) => colegio.nombre == value,
                           orElse: () => colegioProvider.colegios.first,
                         );
                         colegioProvider.seleccionarColegio(selectedColegio);
+
                         // Reset Corte filter when changing colegio
                         context.read<NotasProvider>().aplicarFiltroCorte(null);
-                        // Selección en cascada automática
-                        await _seleccionarEnCascadaDesdeColegio(
-                          anioProvider.selectedAnio!.id!,
-                          selectedColegio.id!,
-                        );
+
+                        // Si hay año lectivo seleccionado, hacer cascada desde colegio
+                        if (anioProvider.selectedAnio != null) {
+                          await _seleccionarEnCascadaDesdeColegio(
+                            anioProvider.selectedAnio!.id!,
+                            selectedColegio.id!,
+                          );
+                        }
+                        // Si no hay año lectivo pero hay colegio, buscar años disponibles para este colegio
+                        else {
+                          await _seleccionarAnioCercanoDesdeColegio(selectedColegio.id!);
+                        }
                       }
                     },
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildDropdown(
                     label: 'Asignatura',
@@ -294,7 +284,7 @@ class _NotasScreenState extends State<NotasScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildDropdown(
                     label: 'Grado',
@@ -321,7 +311,7 @@ class _NotasScreenState extends State<NotasScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildDropdown(
                     label: 'Sección',
@@ -338,6 +328,42 @@ class _NotasScreenState extends State<NotasScreen> {
                       }
                     },
                   ),
+                ),
+                const SizedBox(width: 12),
+                Consumer<NotasProvider>(
+                  builder: (context, notasProvider, _) {
+                    final anioLectivoId = context.read<AnioLectivoProvider>().selectedAnio?.id;
+                    final cortesDisponibles = notasProvider.obtenerCortesDisponibles(anioLectivoId ?? 1);
+                    return FutureBuilder<List<CorteEvaluativo>>(
+                      future: cortesDisponibles,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Expanded(child: CircularProgressIndicator());
+                        }
+
+                        final cortesFiltrados = snapshot.data ?? [];
+                        final corteSeleccionado = corteProvider.selectedCorte;
+
+                        return Expanded(
+                          child: _buildDropdown(
+                            label: 'Corte Evaluativo',
+                            value: corteSeleccionado?.nombre ?? 'Seleccionar',
+                            items: cortesFiltrados.map((corte) => corte.nombre).toList(),
+                            onChanged: (value) {
+                              if (value != null && cortesFiltrados.isNotEmpty) {
+                                final selectedCorte = cortesFiltrados.firstWhere(
+                                  (corte) => corte.nombre == value,
+                                  orElse: () => cortesFiltrados.first,
+                                );
+                                corteProvider.seleccionarCorte(selectedCorte);
+                                notasProvider.aplicarFiltroCorte(selectedCorte.id);
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ],
             ),

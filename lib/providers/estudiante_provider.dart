@@ -142,6 +142,9 @@ class EstudianteProvider extends ChangeNotifier {
 
   // ============== MÉTODOS PARA FILTROS EN CASCADA ==============
 
+  /// Obtiene los IDs de años lectivos disponibles para el colegio seleccionado
+  Future<List<int>> obtenerAniosDisponiblesDesdeColegio(int colegioId) async => await _repository.obtenerAniosConAsignacion(colegioId: colegioId);
+
   /// Obtiene los IDs de colegios disponibles para el año lectivo seleccionado
   Future<List<int>> obtenerColegiosDisponibles(int anioLectivoId) async => await _repository.obtenerColegiosConAsignacion(anioLectivoId: anioLectivoId);
 
@@ -195,6 +198,38 @@ class EstudianteProvider extends ChangeNotifier {
       await cargarEstudiantes();
     } catch (e) {
       print('Error al eliminar estudiante: $e');
+    }
+  }
+
+  /// Crea un estudiante y sus asignaciones académicas
+  Future<void> crearEstudianteConAsignaciones(
+    Estudiante estudiante,
+    int anioLectivoId,
+    int colegioId,
+    List<int> asignaturasIds,
+    int gradoId,
+    int seccionId,
+  ) async {
+    try {
+      // Crear el estudiante
+      final estudianteId = await _repository.crear(estudiante);
+
+      // Crear asignaciones para cada asignatura seleccionada
+      for (final asignaturaId in asignaturasIds) {
+        await _repository.crearAsignacion(
+          estudianteId: estudianteId,
+          anioLectivoId: anioLectivoId,
+          colegioId: colegioId,
+          asignaturaId: asignaturaId,
+          gradoId: gradoId,
+          seccionId: seccionId,
+        );
+      }
+
+      await cargarEstudiantes();
+    } catch (e) {
+      print('Error al crear estudiante con asignaciones: $e');
+      rethrow;
     }
   }
 
@@ -326,9 +361,8 @@ class EstudianteProvider extends ChangeNotifier {
 
         // 6. Buscar si el estudiante ya existe
         final Estudiante? estudianteExistente =
-            await _repository.buscarPorNombreApellido(
-          datos.nombre,
-          datos.apellido,
+            await _repository.buscarPorNombreCompleto(
+          '${datos.nombre} ${datos.apellido}'.trim(),
         );
 
         int estudianteId;
@@ -336,8 +370,8 @@ class EstudianteProvider extends ChangeNotifier {
         if (estudianteExistente == null) {
           // Crear nuevo estudiante
           estudianteId = await _repository.crear(Estudiante(
-            nombre: datos.nombre,
-            apellido: datos.apellido,
+            estudiante: '${datos.nombre} ${datos.apellido}'.trim(),
+            sexo: null, // Sexo no viene del Excel por ahora
           ));
           nuevosEstudiantes++;
         } else {

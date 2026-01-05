@@ -2,8 +2,7 @@ class Nota {
   Nota({
     required this.id,
     required this.estudianteId,
-    required this.estudianteNombre,
-    required this.estudianteApellido,
+    required this.estudianteNombreCompleto,
     required this.numeroIdentidad,
     required this.corteEvaluativoId,
     required this.corteEvaluativoNombre,
@@ -17,8 +16,7 @@ class Nota {
   factory Nota.fromMap(Map<String, dynamic> map) => Nota(
         id: map['id'],
         estudianteId: map['estudianteId'],
-        estudianteNombre: map['estudianteNombre'],
-        estudianteApellido: map['estudianteApellido'],
+        estudianteNombreCompleto: map['estudianteNombreCompleto'] ?? '',
         numeroIdentidad: map['numeroIdentidad'],
         corteEvaluativoId: map['corteEvaluativoId'],
         corteEvaluativoNombre: map['corteEvaluativoNombre'],
@@ -31,8 +29,7 @@ class Nota {
 
   final int id;
   final int estudianteId;
-  final String estudianteNombre;
-  final String estudianteApellido;
+  final String estudianteNombreCompleto;
   final String? numeroIdentidad;
   final int corteEvaluativoId;
   final String corteEvaluativoNombre;
@@ -42,13 +39,10 @@ class Nota {
   final String calificacion;
   final bool activo;
 
-  String get estudianteNombreCompleto => '$estudianteNombre $estudianteApellido';
-
   Map<String, dynamic> toMap() => {
         'id': id,
         'estudianteId': estudianteId,
-        'estudianteNombre': estudianteNombre,
-        'estudianteApellido': estudianteApellido,
+        'estudianteNombreCompleto': estudianteNombreCompleto,
         'numeroIdentidad': numeroIdentidad,
         'corteEvaluativoId': corteEvaluativoId,
         'corteEvaluativoNombre': corteEvaluativoNombre,
@@ -62,8 +56,7 @@ class Nota {
   Nota copyWith({
     int? id,
     int? estudianteId,
-    String? estudianteNombre,
-    String? estudianteApellido,
+    String? estudianteNombreCompleto,
     String? numeroIdentidad,
     int? corteEvaluativoId,
     String? corteEvaluativoNombre,
@@ -76,8 +69,7 @@ class Nota {
       Nota(
         id: id ?? this.id,
         estudianteId: estudianteId ?? this.estudianteId,
-        estudianteNombre: estudianteNombre ?? this.estudianteNombre,
-        estudianteApellido: estudianteApellido ?? this.estudianteApellido,
+        estudianteNombreCompleto: estudianteNombreCompleto ?? this.estudianteNombreCompleto,
         numeroIdentidad: numeroIdentidad ?? this.numeroIdentidad,
         corteEvaluativoId: corteEvaluativoId ?? this.corteEvaluativoId,
         corteEvaluativoNombre: corteEvaluativoNombre ?? this.corteEvaluativoNombre,

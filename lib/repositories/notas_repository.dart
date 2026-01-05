@@ -13,8 +13,7 @@ class NotasRepository {
       SELECT
         ROW_NUMBER() OVER (ORDER BY e.id, ce.id) as id,
         e.id as estudianteId,
-        e.nombre as estudianteNombre,
-        e.apellido as estudianteApellido,
+        e.estudiante as estudianteNombreCompleto,
         e.numero_identidad as numeroIdentidad,
         ce.id as corteEvaluativoId,
         ce.nombre as corteEvaluativoNombre,
@@ -41,8 +40,8 @@ class NotasRepository {
       LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
       LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
       WHERE e.activo = 1 AND ce.activo = 1
-      GROUP BY e.id, e.nombre, e.apellido, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
-      ORDER BY e.apellido, e.nombre, ce.numero
+      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
+      ORDER BY e.estudiante, ce.numero
     ''');
     return List.generate(maps.length, (i) => Nota.fromMap(maps[i]));
   }
@@ -60,8 +59,7 @@ class NotasRepository {
       SELECT
         ROW_NUMBER() OVER (ORDER BY e.id, ce.id) as id,
         e.id as estudianteId,
-        e.nombre as estudianteNombre,
-        e.apellido as estudianteApellido,
+        e.estudiante as estudianteNombreCompleto,
         e.numero_identidad as numeroIdentidad,
         ce.id as corteEvaluativoId,
         ce.nombre as corteEvaluativoNombre,
@@ -96,8 +94,8 @@ class NotasRepository {
         AND ea.asignatura_id = ?
         AND ea.grado_id = ?
         AND ea.seccion_id = ?
-      GROUP BY e.id, e.nombre, e.apellido, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
-      ORDER BY e.apellido, e.nombre, ce.numero
+      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
+      ORDER BY e.estudiante, ce.numero
     ''', [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId]);
     return List.generate(maps.length, (i) => Nota.fromMap(maps[i]));
   }
@@ -110,8 +108,7 @@ class NotasRepository {
       SELECT
         ROW_NUMBER() OVER (ORDER BY e.id, ce.id) as id,
         e.id as estudianteId,
-        e.nombre as estudianteNombre,
-        e.apellido as estudianteApellido,
+        e.estudiante as estudianteNombreCompleto,
         e.numero_identidad as numeroIdentidad,
         ce.id as corteEvaluativoId,
         ce.nombre as corteEvaluativoNombre,
@@ -139,9 +136,9 @@ class NotasRepository {
       LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
       WHERE e.activo = 1
         AND ce.activo = 1
-        AND (LOWER(e.nombre || ' ' || e.apellido) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)
-      GROUP BY e.id, e.nombre, e.apellido, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
-      ORDER BY e.apellido, e.nombre, ce.numero
+        AND (LOWER(e.estudiante) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)
+      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
+      ORDER BY e.estudiante, ce.numero
     ''', [searchTerm, searchTerm]);
     return List.generate(maps.length, (i) => Nota.fromMap(maps[i]));
   }
@@ -161,8 +158,7 @@ class NotasRepository {
       SELECT
         ROW_NUMBER() OVER (ORDER BY e.id, ce.id) as id,
         e.id as estudianteId,
-        e.nombre as estudianteNombre,
-        e.apellido as estudianteApellido,
+        e.estudiante as estudianteNombreCompleto,
         e.numero_identidad as numeroIdentidad,
         ce.id as corteEvaluativoId,
         ce.nombre as corteEvaluativoNombre,
@@ -197,9 +193,9 @@ class NotasRepository {
         AND ea.asignatura_id = ?
         AND ea.grado_id = ?
         AND ea.seccion_id = ?
-        AND (LOWER(e.nombre || ' ' || e.apellido) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)
-      GROUP BY e.id, e.nombre, e.apellido, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
-      ORDER BY e.apellido, e.nombre, ce.numero
+        AND (LOWER(e.estudiante) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)
+      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
+      ORDER BY e.estudiante, ce.numero
     ''', [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId, searchTerm, searchTerm]);
     return List.generate(maps.length, (i) => Nota.fromMap(maps[i]));
   }
@@ -218,7 +214,7 @@ class NotasRepository {
 
     // Base query for students
     String studentQuery = '''
-      SELECT DISTINCT e.id, e.nombre, e.apellido, e.numero_identidad
+      SELECT DISTINCT e.id, e.estudiante, e.numero_identidad
       FROM estudiantes e
       INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
       WHERE e.activo = 1
@@ -233,13 +229,13 @@ class NotasRepository {
     List<dynamic> studentParams = [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId];
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
-      studentQuery += ' AND (LOWER(e.nombre || \' \' || e.apellido) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)';
+      studentQuery += ' AND (LOWER(e.estudiante) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)';
       final searchTerm = '%${searchQuery.toLowerCase()}%';
       studentParams.add(searchTerm);
       studentParams.add(searchTerm);
     }
 
-    studentQuery += ' ORDER BY e.apellido, e.nombre';
+    studentQuery += ' ORDER BY e.estudiante';
 
     final studentMaps = await db.rawQuery(studentQuery, studentParams);
 
@@ -305,8 +301,8 @@ class NotasRepository {
 
       notasDetalladas.add(NotaDetalle(
         estudianteId: estudianteId,
-        estudianteNombre: studentMap['nombre'] as String,
-        estudianteApellido: studentMap['apellido'] as String,
+        estudianteNombre: studentMap['estudiante'] as String,
+        estudianteApellido: '', // No longer used, but required by model
         numeroIdentidad: studentMap['numero_identidad'] as String?,
         corteId: corteId,
         corteNombre: corteNombre,
@@ -321,16 +317,45 @@ class NotasRepository {
     return notasDetalladas;
   }
 
-  /// Obtiene los cortes evaluativos que tienen indicadores configurados para un año lectivo
+  /// Obtiene los cortes evaluativos para un año lectivo
   Future<List<CorteEvaluativo>> obtenerCortesPorAnioLectivo(int anioLectivoId) async {
     final db = await _dbHelper.database;
-    final maps = await db.rawQuery('''
-      SELECT DISTINCT ce.*
+
+    // First check if cortes exist for this academic year
+    final existingMaps = await db.rawQuery('''
+      SELECT ce.*
       FROM cortes_evaluativos ce
-      INNER JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1 AND ie.anio_lectivo_id = ?
       WHERE ce.activo = 1 AND ce.anio_lectivo_id = ?
       ORDER BY ce.numero
-    ''', [anioLectivoId, anioLectivoId]);
+    ''', [anioLectivoId]);
+
+    if (existingMaps.isNotEmpty) {
+      return List.generate(existingMaps.length, (i) => CorteEvaluativo.fromMap(existingMaps[i]));
+    }
+
+    // If no cortes exist, create default cortes for this academic year
+    final cortesDefault = [
+      {'anio_lectivo_id': anioLectivoId, 'numero': 1, 'nombre': '1er Corte', 'puntosTotales': 100, 'activo': 1},
+      {'anio_lectivo_id': anioLectivoId, 'numero': 2, 'nombre': '2do Corte', 'puntosTotales': 100, 'activo': 1},
+      {'anio_lectivo_id': anioLectivoId, 'numero': 3, 'nombre': '3er Corte', 'puntosTotales': 100, 'activo': 1},
+      {'anio_lectivo_id': anioLectivoId, 'numero': 4, 'nombre': '4to Corte', 'puntosTotales': 100, 'activo': 1},
+    ];
+
+    for (final corte in cortesDefault) {
+      try {
+        await db.insert('cortes_evaluativos', corte);
+      } catch (e) {
+        // Ignore if corte already exists (unique constraint)
+      }
+    }
+
+    // Now return the cortes
+    final maps = await db.rawQuery('''
+      SELECT ce.*
+      FROM cortes_evaluativos ce
+      WHERE ce.activo = 1 AND ce.anio_lectivo_id = ?
+      ORDER BY ce.numero
+    ''', [anioLectivoId]);
     return List.generate(maps.length, (i) => CorteEvaluativo.fromMap(maps[i]));
   }
 
@@ -345,6 +370,21 @@ class NotasRepository {
       ORDER BY ce.numero
     ''');
     return maps.map((m) => m['id'] as int).toList();
+  }
+
+  /// Obtiene los años lectivos que tienen notas para un colegio específico
+  Future<List<int>> obtenerAniosConNotasDesdeColegio(int colegioId) async {
+    final db = await _dbHelper.database;
+    final maps = await db.rawQuery('''
+      SELECT DISTINCT ce.anio_lectivo_id
+      FROM notas n
+      INNER JOIN estudiantes e ON n.estudiante_id = e.id
+      INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
+      INNER JOIN cortes_evaluativos ce ON n.corte_evaluativo_id = ce.id
+      WHERE ea.colegio_id = ? AND e.activo = 1 AND ea.activo = 1 AND ce.activo = 1
+      ORDER BY ce.anio_lectivo_id DESC
+    ''', [colegioId]);
+    return maps.map((m) => m['anio_lectivo_id'] as int).toList();
   }
 
   String _calcularCalificacion(double porcentaje) {

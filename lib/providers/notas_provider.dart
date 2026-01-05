@@ -34,6 +34,10 @@ class NotasProvider extends ChangeNotifier {
 
   // ============== MÉTODOS PARA FILTROS EN CASCADA ==============
 
+  /// Obtiene los IDs de años lectivos disponibles para el colegio seleccionado
+  Future<List<int>> obtenerAniosDisponiblesDesdeColegio(int colegioId) async =>
+      await _repository.obtenerAniosConNotasDesdeColegio(colegioId);
+
   /// Obtiene los IDs de colegios disponibles para el año lectivo seleccionado
   Future<List<int>> obtenerColegiosDisponibles(int anioLectivoId) async =>
       await _estudianteRepository.obtenerColegiosConAsignacion(anioLectivoId: anioLectivoId);

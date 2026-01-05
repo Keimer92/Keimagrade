@@ -33,13 +33,13 @@ class EstudianteRepository {
     return null;
   }
 
-  /// Busca un estudiante por nombre y apellido
-  Future<Estudiante?> buscarPorNombreApellido(String nombre, String apellido) async {
+  /// Busca un estudiante por nombre completo
+  Future<Estudiante?> buscarPorNombreCompleto(String nombreCompleto) async {
     final db = await _dbHelper.database;
     final maps = await db.query(
       'estudiantes',
-      where: 'LOWER(nombre) = ? AND LOWER(apellido) = ?',
-      whereArgs: [nombre.toLowerCase().trim(), apellido.toLowerCase().trim()],
+      where: 'LOWER(estudiante) = ?',
+      whereArgs: [nombreCompleto.toLowerCase().trim()],
     );
     if (maps.isNotEmpty) {
       return Estudiante.fromMap(maps.first);
@@ -124,14 +124,14 @@ class EstudianteRepository {
     final maps = await db.rawQuery('''
       SELECT DISTINCT e.* FROM estudiantes e
       INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
-      WHERE ea.anio_lectivo_id = ? 
-        AND ea.colegio_id = ? 
-        AND ea.asignatura_id = ? 
-        AND ea.grado_id = ? 
+      WHERE ea.anio_lectivo_id = ?
+        AND ea.colegio_id = ?
+        AND ea.asignatura_id = ?
+        AND ea.grado_id = ?
         AND ea.seccion_id = ?
         AND e.activo = 1
         AND ea.activo = 1
-      ORDER BY e.apellido, e.nombre
+      ORDER BY e.estudiante
     ''', [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId]);
     return List.generate(maps.length, (i) => Estudiante.fromMap(maps[i]));
   }
@@ -247,11 +247,22 @@ class EstudianteRepository {
 
   // ============== MÉTODOS PARA FILTROS EN CASCADA ==============
 
+  /// Obtiene los IDs de años lectivos que tienen asignaciones para un colegio
+  Future<List<int>> obtenerAniosConAsignacion({required int colegioId}) async {
+    final db = await _dbHelper.database;
+    final maps = await db.rawQuery('''
+      SELECT DISTINCT anio_lectivo_id FROM estudiantes_asignaciones
+      WHERE colegio_id = ? AND activo = 1
+      ORDER BY anio_lectivo_id DESC
+    ''', [colegioId]);
+    return maps.map((m) => m['anio_lectivo_id'] as int).toList();
+  }
+
   /// Obtiene los IDs de colegios que tienen asignaciones para un año lectivo
   Future<List<int>> obtenerColegiosConAsignacion({required int anioLectivoId}) async {
     final db = await _dbHelper.database;
     final maps = await db.rawQuery('''
-      SELECT DISTINCT colegio_id FROM estudiantes_asignaciones 
+      SELECT DISTINCT colegio_id FROM estudiantes_asignaciones
       WHERE anio_lectivo_id = ? AND activo = 1
     ''', [anioLectivoId]);
     return maps.map((m) => m['colegio_id'] as int).toList();
