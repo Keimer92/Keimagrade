@@ -1,0 +1,911 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:excel/excel.dart';
+import 'dart:io';
+import '../../models/estudiante.dart';
+import '../../providers/anio_lectivo_provider.dart';
+import '../../providers/asignatura_provider.dart';
+import '../../providers/colegio_provider.dart';
+import '../../providers/estudiante_provider.dart';
+import '../../providers/grado_provider.dart';
+import '../../providers/seccion_provider.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/custom_widgets.dart';
+import '../../widgets/dialog_helper.dart';
+
+class EstudiantesScreen extends StatefulWidget {
+  const EstudiantesScreen({Key? key}) : super(key: key);
+
+  @override
+  State<EstudiantesScreen> createState() => _EstudiantesScreenState();
+}
+
+class _EstudiantesScreenState extends State<EstudiantesScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      context.read<EstudianteProvider>().cargarEstudiantes();
+      context.read<AnioLectivoProvider>().cargarAnios();
+      context.read<ColegioProvider>().cargarColegios();
+      context.read<AsignaturaProvider>().cargarAsignaturas();
+      context.read<GradoProvider>().cargarGrados();
+      context.read<SeccionProvider>().cargarSecciones();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _showEstudianteDialog({Estudiante? estudiante}) {
+    final nombreController = TextEditingController(text: estudiante?.nombre ?? '');
+    final apellidoController = TextEditingController(text: estudiante?.apellido ?? '');
+    final identidadController = TextEditingController(text: estudiante?.numeroIdentidad ?? '');
+    final telefonoController = TextEditingController(text: estudiante?.telefono ?? '');
+    final emailController = TextEditingController(text: estudiante?.email ?? '');
+    final direccionController = TextEditingController(text: estudiante?.direccion ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        title: Text(
+          estudiante == null ? 'Agregar Estudiante' : 'Editar Estudiante',
+          style: const TextStyle(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomTextField(
+                label: 'Nombre',
+                controller: nombreController,
+                hint: 'Nombre del estudiante',
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: 'Apellido',
+                controller: apellidoController,
+                hint: 'Apellido del estudiante',
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: 'Número de Identidad',
+                controller: identidadController,
+                hint: 'Número de identidad (opcional)',
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: 'Teléfono',
+                controller: telefonoController,
+                keyboardType: TextInputType.phone,
+                hint: 'Teléfono de contacto',
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: 'Email',
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                hint: 'Correo electrónico',
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: 'Dirección',
+                controller: direccionController,
+                hint: 'Dirección del estudiante',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nombreController.text.isEmpty || apellidoController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Completa los campos requeridos')),
+                );
+                return;
+              }
+
+              final nuevoEstudiante = Estudiante(
+                id: estudiante?.id,
+                nombre: nombreController.text,
+                apellido: apellidoController.text,
+                numeroIdentidad: identidadController.text.isNotEmpty ? identidadController.text : null,
+                telefono: telefonoController.text.isNotEmpty ? telefonoController.text : null,
+                email: emailController.text.isNotEmpty ? emailController.text : null,
+                direccion: direccionController.text.isNotEmpty ? direccionController.text : null,
+              );
+
+              final provider = context.read<EstudianteProvider>();
+              if (estudiante == null) {
+                provider.crearEstudiante(nuevoEstudiante);
+              } else {
+                provider.actualizarEstudiante(nuevoEstudiante);
+              }
+
+              Navigator.pop(context);
+            },
+            child: Text(estudiante == null ? 'Agregar' : 'Actualizar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _importarDesdeExcel() async {
+    try {
+      // Solicitar permisos en Android
+      if (Platform.isAndroid) {
+        final status = await Permission.storage.request();
+        if (!status.isGranted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Se necesitan permisos de almacenamiento para importar')),
+          );
+          return;
+        }
+      }
+
+      // Abrir selector de archivos
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls'],
+        dialogTitle: 'Seleccionar archivo Excel',
+      );
+
+      if (result == null) return;
+
+      final file = File(result.files.single.path!);
+      await _procesarArchivoExcel(file);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al importar: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _procesarArchivoExcel(File file) async {
+    final provider = context.read<EstudianteProvider>();
+
+    // Mostrar diálogo de progreso
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Procesando archivo Excel...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      // Leer el archivo Excel
+      final bytes = file.readAsBytesSync();
+      final excel = Excel.decodeBytes(bytes);
+      final sheet = excel.tables.values.first;
+
+      // Obtener encabezados
+      final headers = _obtenerEncabezados(sheet);
+
+      // Validar encabezados usando el provider
+      if (!provider.validarEncabezados(headers)) {
+        Navigator.pop(context);
+        _mostrarErrorEncabezados(headers);
+        return;
+      }
+
+      // Procesar filas y extraer datos
+      final datosImportacion = <DatosImportacionExcel>[];
+      final errores = <String>[];
+
+      for (int row = 1; row < 1000; row++) {
+        try {
+          // Verificar si la fila tiene datos
+          final primeracelda = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row));
+          if (primeracelda.value == null) break;
+
+          // Extraer datos de la fila como mapa
+          final fila = <String, String?>{};
+          for (int col = 0; col < headers.length; col++) {
+            final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
+            fila[headers[col]] = cell.value?.toString();
+          }
+
+          // Usar el provider para extraer los datos
+          final datos = provider.extraerDatosDeFilaExcel(fila: fila, headers: headers);
+          if (datos != null) {
+            datosImportacion.add(datos);
+          }
+        } catch (e) {
+          errores.add('Fila ${row + 1}: ${e.toString()}');
+        }
+      }
+
+      Navigator.pop(context);
+
+      if (datosImportacion.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se encontraron estudiantes válidos en el archivo')),
+        );
+        return;
+      }
+
+      // Mostrar resumen y confirmar importación
+      _mostrarResumenImportacion(datosImportacion, errores);
+    } catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al procesar el archivo: ${e.toString()}')),
+      );
+    }
+  }
+
+  List<String> _obtenerEncabezados(Sheet sheet) {
+    final headers = <String>[];
+    for (int col = 0; col < 20; col++) {
+      try {
+        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+        final value = cell.value?.toString() ?? '';
+        if (value.isNotEmpty) {
+          headers.add(value);
+        }
+      } catch (e) {
+        break;
+      }
+    }
+    return headers;
+  }
+
+  void _mostrarErrorEncabezados(List<String> headers) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        title: const Text('Encabezados incorrectos'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('El archivo debe contener las siguientes columnas:'),
+            const SizedBox(height: 8),
+            ...EstudianteProvider.encabezadosRequeridos.map((h) => Text(
+              '- ${h[0].toUpperCase()}${h.substring(1)}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            )),
+            const SizedBox(height: 16),
+            Text('Encabezados encontrados: ${headers.join(', ')}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Aceptar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _mostrarResumenImportacion(List<DatosImportacionExcel> datos, List<String> errores) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        title: const Text('Resumen de Importación'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Registros encontrados: ${datos.length}'),
+            if (errores.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Errores: ${errores.length}', style: const TextStyle(color: AppTheme.errorColor)),
+            ],
+            const SizedBox(height: 16),
+            const Text('¿Desea importar estos estudiantes?'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _confirmarImportacion(datos);
+            },
+            child: const Text('Importar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmarImportacion(List<DatosImportacionExcel> datos) async {
+    // Mostrar diálogo de progreso
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Importando estudiantes...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      // Llamar al provider para hacer la importación
+      final resultado = await context.read<EstudianteProvider>().importarDatosExcel(datos);
+
+      Navigator.pop(context);
+
+      // Recargar providers relacionados
+      context.read<AnioLectivoProvider>().cargarAnios();
+      context.read<ColegioProvider>().cargarColegios();
+      context.read<AsignaturaProvider>().cargarAsignaturas();
+      context.read<GradoProvider>().cargarGrados();
+      context.read<SeccionProvider>().cargarSecciones();
+
+      // Mostrar resultado
+      _mostrarResultadoImportacion(resultado);
+    } catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error durante la importación: ${e.toString()}')),
+      );
+    }
+  }
+
+  void _mostrarResultadoImportacion(ResultadoImportacion resultado) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        title: const Text('Importación Completada'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (resultado.nuevosEstudiantes > 0)
+              Text('✓ Nuevos estudiantes: ${resultado.nuevosEstudiantes}',
+                  style: const TextStyle(color: Colors.green)),
+            if (resultado.asignacionesCreadas > 0)
+              Text('✓ Asignaciones creadas: ${resultado.asignacionesCreadas}',
+                  style: const TextStyle(color: Colors.green)),
+            if (resultado.duplicadosOmitidos > 0)
+              Text('⚠ Duplicados omitidos: ${resultado.duplicadosOmitidos}',
+                  style: const TextStyle(color: Colors.orange)),
+            if (resultado.errores > 0)
+              Text('✗ Errores: ${resultado.errores}',
+                  style: const TextStyle(color: AppTheme.errorColor)),
+            if (resultado.sinCambios)
+              const Text('No se realizaron cambios - todos los datos ya existían.',
+                  style: TextStyle(color: AppTheme.textSecondary)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Aceptar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Estudiante> _filtrarEstudiantes(List<Estudiante> estudiantes) {
+    final query = _searchController.text.toLowerCase();
+    if (query.isEmpty) return estudiantes;
+
+    return estudiantes.where((estudiante) {
+      final nombreCompleto = estudiante.nombreCompleto.toLowerCase();
+      final identidad = estudiante.numeroIdentidad?.toLowerCase() ?? '';
+      return nombreCompleto.contains(query) || identidad.contains(query);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final anioProvider = Provider.of<AnioLectivoProvider>(context);
+    final colegioProvider = Provider.of<ColegioProvider>(context);
+    final asignaturaProvider = Provider.of<AsignaturaProvider>(context);
+    final gradoProvider = Provider.of<GradoProvider>(context);
+    final seccionProvider = Provider.of<SeccionProvider>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Estudiantes'),
+        elevation: 0,
+      ),
+      body: Column(
+        children: [
+          _buildFilters(anioProvider, colegioProvider, asignaturaProvider, gradoProvider, seccionProvider),
+          const SizedBox(height: 16),
+          _buildSearchAndActions(),
+          const SizedBox(height: 16),
+          _buildEstudiantesList(),
+        ],
+      ),
+    );
+  }
+
+  void _aplicarFiltros() {
+    final anioProvider = context.read<AnioLectivoProvider>();
+    final colegioProvider = context.read<ColegioProvider>();
+    final asignaturaProvider = context.read<AsignaturaProvider>();
+    final gradoProvider = context.read<GradoProvider>();
+    final seccionProvider = context.read<SeccionProvider>();
+
+    context.read<EstudianteProvider>().aplicarFiltros(
+      anioLectivoId: anioProvider.selectedAnio?.id,
+      colegioId: colegioProvider.selectedColegio?.id,
+      asignaturaId: asignaturaProvider.selectedAsignatura?.id,
+      gradoId: gradoProvider.selectedGrado?.id,
+      seccionId: seccionProvider.selectedSeccion?.id,
+    );
+  }
+
+  /// Selecciona automáticamente los filtros en cascada después de seleccionar año lectivo
+  Future<void> _seleccionarEnCascadaDesdeAnio(int anioLectivoId) async {
+    final estudianteProvider = context.read<EstudianteProvider>();
+    final colegioProvider = context.read<ColegioProvider>();
+    final asignaturaProvider = context.read<AsignaturaProvider>();
+    final gradoProvider = context.read<GradoProvider>();
+    final seccionProvider = context.read<SeccionProvider>();
+
+    // Obtener colegios disponibles y seleccionar el primero
+    final colegiosIds = await estudianteProvider.obtenerColegiosDisponibles(anioLectivoId);
+    if (colegiosIds.isNotEmpty) {
+      final colegioDisponible = colegioProvider.colegios.firstWhere(
+        (c) => colegiosIds.contains(c.id),
+        orElse: () => colegioProvider.colegios.first,
+      );
+      colegioProvider.seleccionarColegio(colegioDisponible);
+      
+      await _seleccionarEnCascadaDesdeColegio(anioLectivoId, colegioDisponible.id!);
+    }
+  }
+
+  /// Selecciona automáticamente los filtros en cascada después de seleccionar colegio
+  Future<void> _seleccionarEnCascadaDesdeColegio(int anioLectivoId, int colegioId) async {
+    final estudianteProvider = context.read<EstudianteProvider>();
+    final asignaturaProvider = context.read<AsignaturaProvider>();
+    final gradoProvider = context.read<GradoProvider>();
+    final seccionProvider = context.read<SeccionProvider>();
+
+    // Obtener asignaturas disponibles y seleccionar la primera
+    final asignaturasIds = await estudianteProvider.obtenerAsignaturasDisponibles(anioLectivoId, colegioId);
+    if (asignaturasIds.isNotEmpty) {
+      final asignaturaDisponible = asignaturaProvider.asignaturas.firstWhere(
+        (a) => asignaturasIds.contains(a.id),
+        orElse: () => asignaturaProvider.asignaturas.first,
+      );
+      asignaturaProvider.seleccionarAsignatura(asignaturaDisponible);
+      
+      await _seleccionarEnCascadaDesdeAsignatura(anioLectivoId, colegioId, asignaturaDisponible.id!);
+    }
+  }
+
+  /// Selecciona automáticamente los filtros en cascada después de seleccionar asignatura
+  Future<void> _seleccionarEnCascadaDesdeAsignatura(int anioLectivoId, int colegioId, int asignaturaId) async {
+    final estudianteProvider = context.read<EstudianteProvider>();
+    final gradoProvider = context.read<GradoProvider>();
+    final seccionProvider = context.read<SeccionProvider>();
+
+    // Obtener grados disponibles y seleccionar el primero
+    final gradosIds = await estudianteProvider.obtenerGradosDisponibles(anioLectivoId, colegioId, asignaturaId);
+    if (gradosIds.isNotEmpty) {
+      final gradoDisponible = gradoProvider.grados.firstWhere(
+        (g) => gradosIds.contains(g.id),
+        orElse: () => gradoProvider.grados.first,
+      );
+      gradoProvider.seleccionarGrado(gradoDisponible);
+      
+      await _seleccionarEnCascadaDesdeGrado(anioLectivoId, colegioId, asignaturaId, gradoDisponible.id!);
+    }
+  }
+
+  /// Selecciona automáticamente los filtros en cascada después de seleccionar grado
+  Future<void> _seleccionarEnCascadaDesdeGrado(int anioLectivoId, int colegioId, int asignaturaId, int gradoId) async {
+    final estudianteProvider = context.read<EstudianteProvider>();
+    final seccionProvider = context.read<SeccionProvider>();
+
+    // Obtener secciones disponibles y seleccionar la primera
+    final seccionesIds = await estudianteProvider.obtenerSeccionesDisponibles(anioLectivoId, colegioId, asignaturaId, gradoId);
+    if (seccionesIds.isNotEmpty) {
+      final seccionDisponible = seccionProvider.secciones.firstWhere(
+        (s) => seccionesIds.contains(s.id),
+        orElse: () => seccionProvider.secciones.first,
+      );
+      seccionProvider.seleccionarSeccion(seccionDisponible);
+    }
+
+    // Aplicar filtros finales
+    _aplicarFiltros();
+  }
+
+  Widget _buildFilters(
+    AnioLectivoProvider anioProvider,
+    ColegioProvider colegioProvider,
+    AsignaturaProvider asignaturaProvider,
+    GradoProvider gradoProvider,
+    SeccionProvider seccionProvider,
+  ) =>
+      Container(
+        padding: const EdgeInsets.all(16),
+        color: AppTheme.surfaceColor,
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _buildDropdown(
+                    label: 'Año Lectivo',
+                    value: anioProvider.selectedAnio?.nombre ?? 'Seleccionar',
+                    items: anioProvider.anios.map((anio) => anio.nombre).toList(),
+                    onChanged: (value) async {
+                      if (value != null) {
+                        final selectedAnio = anioProvider.anios.firstWhere(
+                          (anio) => anio.nombre == value,
+                          orElse: () => anioProvider.anios.first,
+                        );
+                        anioProvider.seleccionarAnio(selectedAnio);
+                        // Selección en cascada automática
+                        await _seleccionarEnCascadaDesdeAnio(selectedAnio.id!);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildDropdown(
+                    label: 'Colegio',
+                    value: colegioProvider.selectedColegio?.nombre ?? 'Seleccionar',
+                    items: colegioProvider.colegios.map((colegio) => colegio.nombre).toList(),
+                    onChanged: (value) async {
+                      if (value != null && anioProvider.selectedAnio != null) {
+                        final selectedColegio = colegioProvider.colegios.firstWhere(
+                          (colegio) => colegio.nombre == value,
+                          orElse: () => colegioProvider.colegios.first,
+                        );
+                        colegioProvider.seleccionarColegio(selectedColegio);
+                        // Selección en cascada automática
+                        await _seleccionarEnCascadaDesdeColegio(
+                          anioProvider.selectedAnio!.id!, 
+                          selectedColegio.id!,
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildDropdown(
+                    label: 'Asignatura',
+                    value: asignaturaProvider.selectedAsignatura?.nombre ?? 'Seleccionar',
+                    items: asignaturaProvider.asignaturas.map((a) => a.nombre).toList(),
+                    onChanged: (value) async {
+                      if (value != null && 
+                          anioProvider.selectedAnio != null && 
+                          colegioProvider.selectedColegio != null) {
+                        final selected = asignaturaProvider.asignaturas.firstWhere(
+                          (a) => a.nombre == value,
+                          orElse: () => asignaturaProvider.asignaturas.first,
+                        );
+                        asignaturaProvider.seleccionarAsignatura(selected);
+                        // Selección en cascada
+                        await _seleccionarEnCascadaDesdeAsignatura(
+                          anioProvider.selectedAnio!.id!,
+                          colegioProvider.selectedColegio!.id!,
+                          selected.id!,
+                        );
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildDropdown(
+                    label: 'Grado',
+                    value: gradoProvider.selectedGrado?.nombre ?? 'Seleccionar',
+                    items: gradoProvider.grados.map((g) => g.nombre).toList(),
+                    onChanged: (value) async {
+                      if (value != null && 
+                          anioProvider.selectedAnio != null && 
+                          colegioProvider.selectedColegio != null &&
+                          asignaturaProvider.selectedAsignatura != null) {
+                        final selected = gradoProvider.grados.firstWhere(
+                          (g) => g.nombre == value,
+                          orElse: () => gradoProvider.grados.first,
+                        );
+                        gradoProvider.seleccionarGrado(selected);
+                        // Selección en cascada
+                        await _seleccionarEnCascadaDesdeGrado(
+                          anioProvider.selectedAnio!.id!,
+                          colegioProvider.selectedColegio!.id!,
+                          asignaturaProvider.selectedAsignatura!.id!,
+                          selected.id!,
+                        );
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildDropdown(
+                    label: 'Sección',
+                    value: seccionProvider.selectedSeccion?.letra ?? 'Seleccionar',
+                    items: seccionProvider.secciones.map((s) => s.letra).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        final selected = seccionProvider.secciones.firstWhere(
+                          (s) => s.letra == value,
+                          orElse: () => seccionProvider.secciones.first,
+                        );
+                        seccionProvider.seleccionarSeccion(selected);
+                        _aplicarFiltros();
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Botón para limpiar filtros
+            Consumer<EstudianteProvider>(
+              builder: (context, provider, _) {
+                if (provider.tieneFiltrosActivos) {
+                  return Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        provider.limpiarFiltros();
+                      },
+                      icon: const Icon(Icons.clear_all, size: 18),
+                      label: const Text('Limpiar filtros'),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildDropdown({
+    required String label,
+    required String value,
+    required List<String> items,
+    required Function(String?) onChanged,
+  }) =>
+      DropdownButtonFormField<String>(
+        initialValue: value != 'Seleccionar' && items.contains(value) ? value : null,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+        items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+        onChanged: onChanged,
+      );
+
+  Widget _buildSearchAndActions() => Container(
+        padding: const EdgeInsets.all(16),
+        color: AppTheme.surfaceColor,
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: CustomTextField(
+                    label: 'Buscar estudiante',
+                    controller: _searchController,
+                    hint: 'Nombre o número de identidad',
+                    prefixIcon: const Icon(Icons.search),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: _searchController.text.isNotEmpty
+                      ? () {
+                          _searchController.clear();
+                          setState(() {});
+                        }
+                      : null,
+                  color: _searchController.text.isNotEmpty ? AppTheme.primaryColor : AppTheme.textTertiary,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _showEstudianteDialog,
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Agregar Estudiante'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _importarDesdeExcel,
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text('Importar Excel'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildEstudiantesList() => Consumer<EstudianteProvider>(
+        builder: (context, provider, _) {
+          if (provider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+              ),
+            );
+          }
+
+          if (provider.estudiantes.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const EmptyState(
+                    message: 'No hay estudiantes registrados',
+                    icon: Icons.person,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: _showEstudianteDialog,
+                    icon: const Icon(Icons.person_add),
+                    label: const Text('Agregar Primer Estudiante'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final estudiantesFiltrados = _filtrarEstudiantes(provider.estudiantes);
+
+          return Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: estudiantesFiltrados.length,
+              itemBuilder: (context, index) {
+                final estudiante = estudiantesFiltrados[index];
+                return CustomCard(
+                  onTap: () => provider.seleccionarEstudiante(estudiante),
+                  backgroundColor: provider.selectedEstudiante?.id == estudiante.id
+                      ? AppTheme.primaryColor.withOpacity(0.2)
+                      : AppTheme.surfaceColor,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  estudiante.nombreCompleto,
+                                  style: const TextStyle(
+                                    color: AppTheme.textPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (estudiante.numeroIdentidad != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'ID: ${estudiante.numeroIdentidad!}',
+                                    style: const TextStyle(
+                                      color: AppTheme.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (provider.selectedEstudiante?.id == estudiante.id)
+                            const Icon(Icons.check_circle, color: AppTheme.primaryColor),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (estudiante.telefono != null)
+                        _InfoRow(icon: Icons.phone, label: estudiante.telefono!),
+                      if (estudiante.email != null)
+                        _InfoRow(icon: Icons.email, label: estudiante.email!),
+                      if (estudiante.direccion != null)
+                        _InfoRow(icon: Icons.location_on, label: estudiante.direccion!),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: AppTheme.primaryColor),
+                            onPressed: () => _showEstudianteDialog(estudiante: estudiante),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: AppTheme.errorColor),
+                            onPressed: () {
+                              DialogHelper.showDeleteConfirmation(
+                                context: context,
+                                itemName: estudiante.nombreCompleto,
+                                onConfirm: () => provider.eliminarEstudiante(estudiante.id!),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      );
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Icon(icon, size: 16, color: AppTheme.textTertiary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+}
