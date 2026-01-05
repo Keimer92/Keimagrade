@@ -44,7 +44,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     super.dispose();
   }
 
-  void _showEstudianteDialog({Estudiante? estudiante}) {
+  void _showEstudianteDialog({Estudiante? estudiante}) async {
     // Controllers for student basic info
     final estudianteController =
         TextEditingController(text: estudiante?.estudiante ?? '');
@@ -63,14 +63,35 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     int? selectedColegioId;
     int? selectedGradoId;
     int? selectedSeccionId;
-    Set<int> selectedAsignaturasIds =
-        {}; // Will be populated with all default subjects
+    Set<int> selectedAsignaturasIds = {};
 
-    // Initialize selected subjects with all default subjects
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final asignaturas = context.read<AsignaturaProvider>().asignaturas;
-      selectedAsignaturasIds = asignaturas.map((a) => a.id!).toSet();
-    });
+    // If editing existing student, load their assignments
+    if (estudiante != null) {
+      try {
+        final estudianteProvider = context.read<EstudianteProvider>();
+        final asignaciones = await estudianteProvider.obtenerAsignacionesEstudiante(estudiante.id!);
+
+        if (asignaciones.isNotEmpty) {
+          // Use the first assignment as reference (assuming one main assignment per student)
+          final primeraAsignacion = asignaciones.first;
+          selectedAnioId = primeraAsignacion['anio_lectivo_id'];
+          selectedColegioId = primeraAsignacion['colegio_id'];
+          selectedGradoId = primeraAsignacion['grado_id'];
+          selectedSeccionId = primeraAsignacion['seccion_id'];
+
+          // Get all asignaturas for this student
+          selectedAsignaturasIds = asignaciones.map((a) => a['asignatura_id'] as int).toSet();
+        }
+      } catch (e) {
+        print('Error loading student assignments: $e');
+      }
+    } else {
+      // Initialize selected subjects with all default subjects for new student
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final asignaturas = context.read<AsignaturaProvider>().asignaturas;
+        selectedAsignaturasIds = asignaturas.map((a) => a.id!).toSet();
+      });
+    }
 
     showDialog(
       context: context,

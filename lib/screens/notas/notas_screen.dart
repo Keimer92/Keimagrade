@@ -228,6 +228,42 @@ class _NotasScreenState extends State<NotasScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
+                Consumer<NotasProvider>(
+                  builder: (context, notasProvider, _) {
+                    final anioLectivoId = context.read<AnioLectivoProvider>().selectedAnio?.id;
+                    final cortesDisponibles = notasProvider.obtenerCortesDisponibles(anioLectivoId ?? 1);
+                    return FutureBuilder<List<CorteEvaluativo>>(
+                      future: cortesDisponibles,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Expanded(child: CircularProgressIndicator());
+                        }
+
+                        final cortesFiltrados = snapshot.data ?? [];
+                        final corteSeleccionado = corteProvider.selectedCorte;
+
+                        return Expanded(
+                          child: _buildDropdown(
+                            label: 'Corte Evaluativo',
+                            value: corteSeleccionado?.nombre ?? 'Seleccionar',
+                            items: cortesFiltrados.map((corte) => corte.nombre).toList(),
+                            onChanged: (value) {
+                              if (value != null && cortesFiltrados.isNotEmpty) {
+                                final selectedCorte = cortesFiltrados.firstWhere(
+                                  (corte) => corte.nombre == value,
+                                  orElse: () => cortesFiltrados.first,
+                                );
+                                corteProvider.seleccionarCorte(selectedCorte);
+                                notasProvider.aplicarFiltroCorte(selectedCorte.id);
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildDropdown(
                     label: 'Colegio',
@@ -328,42 +364,6 @@ class _NotasScreenState extends State<NotasScreen> {
                       }
                     },
                   ),
-                ),
-                const SizedBox(width: 12),
-                Consumer<NotasProvider>(
-                  builder: (context, notasProvider, _) {
-                    final anioLectivoId = context.read<AnioLectivoProvider>().selectedAnio?.id;
-                    final cortesDisponibles = notasProvider.obtenerCortesDisponibles(anioLectivoId ?? 1);
-                    return FutureBuilder<List<CorteEvaluativo>>(
-                      future: cortesDisponibles,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Expanded(child: CircularProgressIndicator());
-                        }
-
-                        final cortesFiltrados = snapshot.data ?? [];
-                        final corteSeleccionado = corteProvider.selectedCorte;
-
-                        return Expanded(
-                          child: _buildDropdown(
-                            label: 'Corte Evaluativo',
-                            value: corteSeleccionado?.nombre ?? 'Seleccionar',
-                            items: cortesFiltrados.map((corte) => corte.nombre).toList(),
-                            onChanged: (value) {
-                              if (value != null && cortesFiltrados.isNotEmpty) {
-                                final selectedCorte = cortesFiltrados.firstWhere(
-                                  (corte) => corte.nombre == value,
-                                  orElse: () => cortesFiltrados.first,
-                                );
-                                corteProvider.seleccionarCorte(selectedCorte);
-                                notasProvider.aplicarFiltroCorte(selectedCorte.id);
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    );
-                  },
                 ),
               ],
             ),

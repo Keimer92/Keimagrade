@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/estudiante.dart';
 import '../repositories/estudiante_repository.dart';
+import '../database/database_helper.dart';
 
 /// Clase para almacenar datos de importación desde Excel
 class DatosImportacionExcel {
@@ -231,6 +232,16 @@ class EstudianteProvider extends ChangeNotifier {
       print('Error al crear estudiante con asignaciones: $e');
       rethrow;
     }
+  }
+
+  /// Obtiene las asignaciones académicas de un estudiante
+  Future<List<Map<String, dynamic>>> obtenerAsignacionesEstudiante(int estudianteId) async {
+    final db = await DatabaseHelper().database;
+    final maps = await db.rawQuery('''
+      SELECT ea.* FROM estudiantes_asignaciones ea
+      WHERE ea.estudiante_id = ? AND ea.activo = 1
+    ''', [estudianteId]);
+    return maps;
   }
 
   // ============== MÉTODOS DE IMPORTACIÓN EXCEL ==============
