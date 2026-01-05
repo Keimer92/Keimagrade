@@ -3,6 +3,7 @@ import 'screens/globales/globales_screen.dart';
 import 'screens/ajustes/ajustes_screen.dart';
 import 'screens/evaluaciones/evaluaciones_screen.dart';
 import 'screens/estudiantes/estudiantes_screen.dart';
+import 'screens/notas/notas_screen.dart';
 import 'theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
+    const NotasScreen(),
     const GlobalesScreen(),
     const EvaluacionesScreen(),
     const EstudiantesScreen(),
@@ -58,14 +60,19 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               destinations: const [
                 NavigationRailDestination(
+                  icon: Icon(Icons.grade),
+                  selectedIcon: Icon(Icons.grade, color: AppTheme.primaryColor),
+                  label: Text('Notas'),
+                ),
+                NavigationRailDestination(
                   icon: Icon(Icons.settings),
                   selectedIcon:
                       Icon(Icons.settings, color: AppTheme.primaryColor),
                   label: Text('Globales'),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.grade),
-                  selectedIcon: Icon(Icons.grade, color: AppTheme.primaryColor),
+                  icon: Icon(Icons.edit),
+                  selectedIcon: Icon(Icons.edit, color: AppTheme.primaryColor),
                   label: Text('Evaluaciones'),
                 ),
                 NavigationRailDestination(

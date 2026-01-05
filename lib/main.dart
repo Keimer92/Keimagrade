@@ -4,6 +4,7 @@ import 'providers/anio_lectivo_provider.dart';
 import 'providers/asignatura_provider.dart';
 import 'providers/colegio_provider.dart';
 import 'providers/grado_provider.dart';
+import 'providers/notas_provider.dart';
 import 'providers/seccion_provider.dart';
 import 'providers/corte_evaluativo_provider.dart';
 import 'providers/indicador_evaluacion_provider.dart';
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ColegioProvider()),
         ChangeNotifierProvider(create: (_) => AsignaturaProvider()),
         ChangeNotifierProvider(create: (_) => GradoProvider()),
+        ChangeNotifierProvider(create: (_) => NotasProvider()),
         ChangeNotifierProvider(create: (_) => SeccionProvider()),
         ChangeNotifierProvider(create: (_) => CorteEvaluativoProvider()),
         ChangeNotifierProvider(create: (_) => IndicadorEvaluacionProvider()),

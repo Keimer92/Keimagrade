@@ -1,0 +1,144 @@
+import 'package:flutter/material.dart';
+import '../models/nota.dart';
+import '../repositories/notas_repository.dart';
+import '../repositories/estudiante_repository.dart';
+
+class NotasProvider extends ChangeNotifier {
+  final NotasRepository _repository = NotasRepository();
+  final EstudianteRepository _estudianteRepository = EstudianteRepository();
+  List<Nota> _notas = [];
+  List<Nota> _notasFiltradas = [];
+  bool _isLoading = false;
+
+  // Filtros actuales
+  int? _anioLectivoIdFiltro;
+  int? _colegioIdFiltro;
+  int? _asignaturaIdFiltro;
+  int? _gradoIdFiltro;
+  int? _seccionIdFiltro;
+  String? _searchQuery;
+
+  List<Nota> get notas => _notasFiltradas;
+  bool get isLoading => _isLoading;
+  bool get tieneFiltrosActivos => _anioLectivoIdFiltro != null ||
+      _colegioIdFiltro != null ||
+      _asignaturaIdFiltro != null ||
+      _gradoIdFiltro != null ||
+      _seccionIdFiltro != null;
+
+  // ============== MÉTODOS PARA FILTROS EN CASCADA ==============
+
+  /// Obtiene los IDs de colegios disponibles para el año lectivo seleccionado
+  Future<List<int>> obtenerColegiosDisponibles(int anioLectivoId) async =>
+      await _estudianteRepository.obtenerColegiosConAsignacion(anioLectivoId: anioLectivoId);
+
+  /// Obtiene los IDs de asignaturas disponibles para el año y colegio seleccionados
+  Future<List<int>> obtenerAsignaturasDisponibles(int anioLectivoId, int colegioId) async =>
+      await _estudianteRepository.obtenerAsignaturasConAsignacion(
+        anioLectivoId: anioLectivoId,
+        colegioId: colegioId,
+      );
+
+  /// Obtiene los IDs de grados disponibles para el año, colegio y asignatura seleccionados
+  Future<List<int>> obtenerGradosDisponibles(int anioLectivoId, int colegioId, int asignaturaId) async =>
+      await _estudianteRepository.obtenerGradosConAsignacion(
+        anioLectivoId: anioLectivoId,
+        colegioId: colegioId,
+        asignaturaId: asignaturaId,
+      );
+
+  /// Obtiene los IDs de secciones disponibles para el año, colegio, asignatura y grado seleccionados
+  Future<List<int>> obtenerSeccionesDisponibles(int anioLectivoId, int colegioId, int asignaturaId, int gradoId) async =>
+      await _estudianteRepository.obtenerSeccionesConAsignacion(
+        anioLectivoId: anioLectivoId,
+        colegioId: colegioId,
+        asignaturaId: asignaturaId,
+        gradoId: gradoId,
+      );
+
+  Future<void> cargarNotas() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      // Si hay filtros completos, obtener notas filtradas
+      if (tieneFiltrosActivos && _todosLosFiltrosCompletos()) {
+        if (_searchQuery != null && _searchQuery!.isNotEmpty) {
+          _notasFiltradas = await _repository.buscarPorAsignacion(
+            anioLectivoId: _anioLectivoIdFiltro!,
+            colegioId: _colegioIdFiltro!,
+            asignaturaId: _asignaturaIdFiltro!,
+            gradoId: _gradoIdFiltro!,
+            seccionId: _seccionIdFiltro!,
+            query: _searchQuery!,
+          );
+        } else {
+          _notasFiltradas = await _repository.obtenerPorAsignacion(
+            anioLectivoId: _anioLectivoIdFiltro!,
+            colegioId: _colegioIdFiltro!,
+            asignaturaId: _asignaturaIdFiltro!,
+            gradoId: _gradoIdFiltro!,
+            seccionId: _seccionIdFiltro!,
+          );
+        }
+      } else if (_searchQuery != null && _searchQuery!.isNotEmpty) {
+        // Solo búsqueda sin filtros
+        _notasFiltradas = await _repository.buscar(_searchQuery!);
+      } else {
+        // Todas las notas
+        _notasFiltradas = await _repository.obtenerTodas();
+      }
+    } catch (e) {
+      print('Error al cargar notas: $e');
+      _notasFiltradas = [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  bool _todosLosFiltrosCompletos() => _anioLectivoIdFiltro != null &&
+        _colegioIdFiltro != null &&
+        _asignaturaIdFiltro != null &&
+        _gradoIdFiltro != null &&
+        _seccionIdFiltro != null;
+
+  /// Aplica filtros por año lectivo, colegio, asignatura, grado y sección
+  Future<void> aplicarFiltros({
+    int? anioLectivoId,
+    int? colegioId,
+    int? asignaturaId,
+    int? gradoId,
+    int? seccionId,
+  }) async {
+    _anioLectivoIdFiltro = anioLectivoId;
+    _colegioIdFiltro = colegioId;
+    _asignaturaIdFiltro = asignaturaId;
+    _gradoIdFiltro = gradoId;
+    _seccionIdFiltro = seccionId;
+
+    await cargarNotas();
+  }
+
+  /// Limpia todos los filtros y muestra todas las notas
+  Future<void> limpiarFiltros() async {
+    _anioLectivoIdFiltro = null;
+    _colegioIdFiltro = null;
+    _asignaturaIdFiltro = null;
+    _gradoIdFiltro = null;
+    _seccionIdFiltro = null;
+
+    await cargarNotas();
+  }
+
+  /// Actualiza la búsqueda
+  Future<void> buscar(String query) async {
+    _searchQuery = query.isEmpty ? null : query;
+    await cargarNotas();
+  }
+
+  /// Limpia la búsqueda
+  Future<void> limpiarBusqueda() async {
+    _searchQuery = null;
+    await cargarNotas();
+  }
+}
