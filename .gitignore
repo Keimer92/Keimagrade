@@ -1,11 +1,11 @@
-# Python Básico
+# Filtros Keimer Pro
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 env/
 Backup/
-# Flutter Básico (Solo código fuente)
+# Solo vital para Flutter
 .dart_tool/
 build/
 .flutter-plugins
