@@ -1,0 +1,13 @@
+# Filtros Keimer Pro
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+Backup/
+# Solo vital para Flutter
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.metadata
