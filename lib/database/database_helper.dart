@@ -22,7 +22,7 @@ class DatabaseHelper {
     final String path = join(await getDatabasesPath(), 'keimagrade.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -88,10 +88,13 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE cortes_evaluativos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        anio_lectivo_id INTEGER NOT NULL,
         numero INTEGER NOT NULL,
         nombre TEXT NOT NULL,
         puntosTotales INTEGER NOT NULL DEFAULT 100,
-        activo INTEGER NOT NULL DEFAULT 1
+        activo INTEGER NOT NULL DEFAULT 1,
+        FOREIGN KEY (anio_lectivo_id) REFERENCES anos_lectivos(id),
+        UNIQUE(anio_lectivo_id, numero)
       )
     ''');
 
@@ -99,12 +102,15 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE indicadores_evaluacion (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        anio_lectivo_id INTEGER NOT NULL,
         corteId INTEGER NOT NULL,
         numero INTEGER NOT NULL,
         descripcion TEXT NOT NULL,
         puntosTotales INTEGER NOT NULL DEFAULT 20,
         activo INTEGER NOT NULL DEFAULT 1,
-        FOREIGN KEY (corteId) REFERENCES cortes_evaluativos(id)
+        FOREIGN KEY (anio_lectivo_id) REFERENCES anos_lectivos(id),
+        FOREIGN KEY (corteId) REFERENCES cortes_evaluativos(id),
+        UNIQUE(anio_lectivo_id, corteId, numero)
       )
     ''');
 
@@ -112,13 +118,16 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE criterios_evaluacion (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        anio_lectivo_id INTEGER NOT NULL,
         indicadorId INTEGER NOT NULL,
         numero INTEGER NOT NULL,
         descripcion TEXT NOT NULL,
         puntosMaximos INTEGER NOT NULL DEFAULT 8,
         puntosObtenidos INTEGER NOT NULL DEFAULT 0,
         activo INTEGER NOT NULL DEFAULT 1,
-        FOREIGN KEY (indicadorId) REFERENCES indicadores_evaluacion(id)
+        FOREIGN KEY (anio_lectivo_id) REFERENCES anos_lectivos(id),
+        FOREIGN KEY (indicadorId) REFERENCES indicadores_evaluacion(id),
+        UNIQUE(anio_lectivo_id, indicadorId, numero)
       )
     ''');
 
@@ -279,6 +288,39 @@ class DatabaseHelper {
           UNIQUE(estudiante_id, anio_lectivo_id, colegio_id, asignatura_id, grado_id, seccion_id)
         )
       ''');
+    }
+
+    if (oldVersion < 3) {
+      // Agregar relación con año lectivo a las tablas de evaluación
+      // Primero obtener el ID del año lectivo por defecto
+      final defaultAnioResult = await db.query('anos_lectivos', where: 'porDefecto = ?', whereArgs: [1]);
+      final defaultAnioId = defaultAnioResult.isNotEmpty ? defaultAnioResult.first['id'] as int : 1;
+
+      // Agregar columnas anio_lectivo_id a las tablas existentes usando valores literales
+      await db.execute('ALTER TABLE cortes_evaluativos ADD COLUMN anio_lectivo_id INTEGER NOT NULL DEFAULT $defaultAnioId');
+      await db.execute('ALTER TABLE indicadores_evaluacion ADD COLUMN anio_lectivo_id INTEGER NOT NULL DEFAULT $defaultAnioId');
+      await db.execute('ALTER TABLE criterios_evaluacion ADD COLUMN anio_lectivo_id INTEGER NOT NULL DEFAULT $defaultAnioId');
+
+      // Crear cortes por defecto para el año lectivo por defecto
+      final cortesDefault = [
+        {'anio_lectivo_id': defaultAnioId, 'numero': 1, 'nombre': '1er Corte', 'puntosTotales': 100, 'activo': 1},
+        {'anio_lectivo_id': defaultAnioId, 'numero': 2, 'nombre': '2do Corte', 'puntosTotales': 100, 'activo': 1},
+        {'anio_lectivo_id': defaultAnioId, 'numero': 3, 'nombre': '3er Corte', 'puntosTotales': 100, 'activo': 1},
+        {'anio_lectivo_id': defaultAnioId, 'numero': 4, 'nombre': '4to Corte', 'puntosTotales': 100, 'activo': 1},
+      ];
+
+      for (final corte in cortesDefault) {
+        await db.insert('cortes_evaluativos', corte);
+      }
+
+      // Agregar restricciones de unicidad
+      try {
+        await db.execute('CREATE UNIQUE INDEX idx_cortes_anio_numero ON cortes_evaluativos(anio_lectivo_id, numero)');
+        await db.execute('CREATE UNIQUE INDEX idx_indicadores_anio_corte_numero ON indicadores_evaluacion(anio_lectivo_id, corteId, numero)');
+        await db.execute('CREATE UNIQUE INDEX idx_criterios_anio_indicador_numero ON criterios_evaluacion(anio_lectivo_id, indicadorId, numero)');
+      } catch (e) {
+        // Ignorar errores si los índices ya existen
+      }
     }
   }
 }

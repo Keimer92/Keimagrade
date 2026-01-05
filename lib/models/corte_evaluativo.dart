@@ -1,7 +1,8 @@
 class CorteEvaluativo {
 
   CorteEvaluativo({
-    required this.id,
+    this.id,
+    required this.anioLectivoId,
     required this.numero,
     required this.nombre,
     required this.puntosTotales,
@@ -10,12 +11,14 @@ class CorteEvaluativo {
 
   factory CorteEvaluativo.fromMap(Map<String, dynamic> map) => CorteEvaluativo(
         id: map['id'],
+        anioLectivoId: map['anio_lectivo_id'],
         numero: map['numero'],
         nombre: map['nombre'],
         puntosTotales: map['puntosTotales'],
         activo: map['activo'] == 1,
       );
-  final int id;
+  final int? id;
+  final int anioLectivoId;
   final int numero;
   final String nombre;
   final int puntosTotales;
@@ -23,6 +26,7 @@ class CorteEvaluativo {
 
   Map<String, dynamic> toMap() => {
         'id': id,
+        'anio_lectivo_id': anioLectivoId,
         'numero': numero,
         'nombre': nombre,
         'puntosTotales': puntosTotales,
@@ -31,6 +35,7 @@ class CorteEvaluativo {
 
   CorteEvaluativo copyWith({
     int? id,
+    int? anioLectivoId,
     int? numero,
     String? nombre,
     int? puntosTotales,
@@ -38,6 +43,7 @@ class CorteEvaluativo {
   }) =>
       CorteEvaluativo(
         id: id ?? this.id,
+        anioLectivoId: anioLectivoId ?? this.anioLectivoId,
         numero: numero ?? this.numero,
         nombre: nombre ?? this.nombre,
         puntosTotales: puntosTotales ?? this.puntosTotales,

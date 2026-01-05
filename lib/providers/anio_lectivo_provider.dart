@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/anio_lectivo.dart';
+import '../models/corte_evaluativo.dart';
 import '../repositories/anio_lectivo_repository.dart';
+import '../repositories/corte_evaluativo_repository.dart';
 import '../repositories/estudiante_repository.dart';
 
 class AnioLectivoProvider extends ChangeNotifier {
@@ -59,9 +61,63 @@ class AnioLectivoProvider extends ChangeNotifier {
         anio: 2026,
         porDefecto: true,
       );
-      await _repository.crear(anioDefecto);
+      final anioId = await _repository.crear(anioDefecto);
+      // Crear cortes por defecto para el año por defecto
+      await _crearCortesPorDefecto(anioId);
     } catch (e) {
       print('Error al crear año por defecto: $e');
+    }
+  }
+
+  Future<void> _crearCortesPorDefecto(int anioLectivoId) async {
+    try {
+      final corteRepository = CorteEvaluativoRepository();
+
+      // Check if cortes already exist for this academic year
+      final cortesExistentes = await corteRepository.obtenerPorAnioLectivo(anioLectivoId);
+      if (cortesExistentes.isNotEmpty) {
+        print('Cortes ya existen para el año lectivo $anioLectivoId');
+        return;
+      }
+
+      final cortesDefault = [
+        CorteEvaluativo(
+          anioLectivoId: anioLectivoId,
+          numero: 1,
+          nombre: '1er Corte',
+          puntosTotales: 100,
+          activo: true,
+        ),
+        CorteEvaluativo(
+          anioLectivoId: anioLectivoId,
+          numero: 2,
+          nombre: '2do Corte',
+          puntosTotales: 100,
+          activo: true,
+        ),
+        CorteEvaluativo(
+          anioLectivoId: anioLectivoId,
+          numero: 3,
+          nombre: '3er Corte',
+          puntosTotales: 100,
+          activo: true,
+        ),
+        CorteEvaluativo(
+          anioLectivoId: anioLectivoId,
+          numero: 4,
+          nombre: '4to Corte',
+          puntosTotales: 100,
+          activo: true,
+        ),
+      ];
+
+      for (final corte in cortesDefault) {
+        await corteRepository.crear(corte);
+      }
+
+      print('Cortes por defecto creados para el año lectivo $anioLectivoId');
+    } catch (e) {
+      print('Error al crear cortes por defecto: $e');
     }
   }
 
@@ -86,7 +142,11 @@ class AnioLectivoProvider extends ChangeNotifier {
         anio: anio.anio,
         activo: false,
       );
-      await _repository.crear(anioParaCrear);
+      final nuevoAnioId = await _repository.crear(anioParaCrear);
+
+      // Crear cortes por defecto para el nuevo año
+      await _crearCortesPorDefecto(nuevoAnioId);
+
       await cargarTodosLosAnios();
     } catch (e) {
       print('Error al crear año: $e');

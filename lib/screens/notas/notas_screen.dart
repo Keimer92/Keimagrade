@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/nota.dart';
+import '../../models/nota_detalle.dart';
+import '../../models/corte_evaluativo.dart';
 import '../../providers/anio_lectivo_provider.dart';
 import '../../providers/asignatura_provider.dart';
 import '../../providers/colegio_provider.dart';
+import '../../providers/corte_evaluativo_provider.dart';
 import '../../providers/notas_provider.dart';
 import '../../providers/grado_provider.dart';
 import '../../providers/seccion_provider.dart';
@@ -30,6 +33,7 @@ class _NotasScreenState extends State<NotasScreen> {
       context.read<AsignaturaProvider>().cargarAsignaturas();
       context.read<GradoProvider>().cargarGrados();
       context.read<SeccionProvider>().cargarSecciones();
+      context.read<CorteEvaluativoProvider>().cargarCortes();
     });
   }
 
@@ -46,6 +50,7 @@ class _NotasScreenState extends State<NotasScreen> {
     final asignaturaProvider = Provider.of<AsignaturaProvider>(context);
     final gradoProvider = Provider.of<GradoProvider>(context);
     final seccionProvider = Provider.of<SeccionProvider>(context);
+    final corteProvider = Provider.of<CorteEvaluativoProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -54,11 +59,11 @@ class _NotasScreenState extends State<NotasScreen> {
       ),
       body: Column(
         children: [
-          _buildFilters(anioProvider, colegioProvider, asignaturaProvider, gradoProvider, seccionProvider),
+          _buildFilters(anioProvider, colegioProvider, asignaturaProvider, gradoProvider, seccionProvider, corteProvider),
           const SizedBox(height: 16),
           _buildSearch(),
           const SizedBox(height: 16),
-          _buildNotasList(),
+          _buildContent(),
         ],
       ),
     );
@@ -169,6 +174,7 @@ class _NotasScreenState extends State<NotasScreen> {
     AsignaturaProvider asignaturaProvider,
     GradoProvider gradoProvider,
     SeccionProvider seccionProvider,
+    CorteEvaluativoProvider corteProvider,
   ) =>
       Container(
         padding: const EdgeInsets.all(16),
@@ -189,6 +195,8 @@ class _NotasScreenState extends State<NotasScreen> {
                           orElse: () => anioProvider.anios.first,
                         );
                         anioProvider.seleccionarAnio(selectedAnio);
+                        // Reset Corte filter when changing year
+                        context.read<NotasProvider>().aplicarFiltroCorte(null);
                         // Selección en cascada automática
                         await _seleccionarEnCascadaDesdeAnio(selectedAnio.id!);
                       }
@@ -196,6 +204,44 @@ class _NotasScreenState extends State<NotasScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
+                Consumer<NotasProvider>(
+                  builder: (context, notasProvider, _) {
+                    final cortesDisponibles = notasProvider.obtenerCortesDisponibles(context.read<AnioLectivoProvider>().selectedAnio?.id ?? 1);
+                    return FutureBuilder<List<CorteEvaluativo>>(
+                      future: cortesDisponibles,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Expanded(child: CircularProgressIndicator());
+                        }
+
+                        final cortesFiltrados = snapshot.data ?? [];
+
+                        return Expanded(
+                          child: _buildDropdown(
+                            label: 'Corte Evaluativo',
+                            value: corteProvider.selectedCorte?.nombre ?? 'Seleccionar',
+                            items: cortesFiltrados.map((corte) => corte.nombre).toList(),
+                            onChanged: (value) {
+                              if (value != null && cortesFiltrados.isNotEmpty) {
+                                final selectedCorte = cortesFiltrados.firstWhere(
+                                  (corte) => corte.nombre == value,
+                                  orElse: () => cortesFiltrados.first,
+                                );
+                                corteProvider.seleccionarCorte(selectedCorte);
+                                notasProvider.aplicarFiltroCorte(selectedCorte.id);
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
                 Expanded(
                   child: _buildDropdown(
                     label: 'Colegio',
@@ -208,6 +254,8 @@ class _NotasScreenState extends State<NotasScreen> {
                           orElse: () => colegioProvider.colegios.first,
                         );
                         colegioProvider.seleccionarColegio(selectedColegio);
+                        // Reset Corte filter when changing colegio
+                        context.read<NotasProvider>().aplicarFiltroCorte(null);
                         // Selección en cascada automática
                         await _seleccionarEnCascadaDesdeColegio(
                           anioProvider.selectedAnio!.id!,
@@ -334,34 +382,46 @@ class _NotasScreenState extends State<NotasScreen> {
         onChanged: onChanged,
       );
 
-  Widget _buildSearch() => Container(
-        padding: const EdgeInsets.all(16),
-        color: AppTheme.surfaceColor,
-        child: Row(
-          children: [
-            Expanded(
-              child: CustomTextField(
-                label: 'Buscar estudiante',
-                controller: _searchController,
-                hint: 'Nombre o número de identidad',
-                prefixIcon: const Icon(Icons.search),
-                onChanged: (value) {
-                  context.read<NotasProvider>().buscar(value);
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            IconButton(
-              icon: const Icon(Icons.clear),
-              onPressed: _searchController.text.isNotEmpty
-                  ? () {
-                      _searchController.clear();
-                      context.read<NotasProvider>().limpiarBusqueda();
+  Widget _buildSearch() => Consumer<NotasProvider>(
+        builder: (context, provider, _) => Container(
+          padding: const EdgeInsets.all(16),
+          color: AppTheme.surfaceColor,
+          child: Row(
+            children: [
+              Expanded(
+                child: CustomTextField(
+                  label: 'Buscar estudiante',
+                  controller: _searchController,
+                  hint: 'Nombre o número de identidad',
+                  prefixIcon: const Icon(Icons.search),
+                  onChanged: (value) {
+                    if (provider.todosLosFiltrosCompletosConCorte()) {
+                      // Use detailed search when Corte is selected
+                      context.read<NotasProvider>().buscarDetalladas(value);
+                    } else {
+                      // Use regular search otherwise
+                      context.read<NotasProvider>().buscar(value);
                     }
-                  : null,
-              color: _searchController.text.isNotEmpty ? AppTheme.primaryColor : AppTheme.textTertiary,
-            ),
-          ],
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: _searchController.text.isNotEmpty
+                    ? () {
+                        _searchController.clear();
+                        if (provider.todosLosFiltrosCompletosConCorte()) {
+                          context.read<NotasProvider>().buscarDetalladas('');
+                        } else {
+                          context.read<NotasProvider>().limpiarBusqueda();
+                        }
+                      }
+                    : null,
+                color: _searchController.text.isNotEmpty ? AppTheme.primaryColor : AppTheme.textTertiary,
+              ),
+            ],
+          ),
         ),
       );
 
@@ -508,6 +568,260 @@ class _NotasScreenState extends State<NotasScreen> {
           );
         },
       );
+
+  Widget _buildContent() => Consumer<NotasProvider>(
+        builder: (context, provider, _) {
+          // If Corte is selected, show the detailed table
+          if (provider.todosLosFiltrosCompletosConCorte()) {
+            return _buildNotasTable();
+          } else {
+            // Otherwise, show the list view
+            return _buildNotasList();
+          }
+        },
+      );
+
+  Widget _buildNotasTable() => Consumer<NotasProvider>(
+        builder: (context, provider, _) {
+          if (provider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+              ),
+            );
+          }
+
+          if (provider.notasDetalladas.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const EmptyState(
+                    message: 'No hay notas registradas para este corte',
+                    icon: Icons.table_chart,
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Configure los filtros incluyendo el corte evaluativo',
+                    style: TextStyle(color: AppTheme.textSecondary),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SingleChildScrollView(
+                child: Container(
+                  color: AppTheme.surfaceColor,
+                  child: Table(
+                    border: TableBorder.all(color: AppTheme.textTertiary.withOpacity(0.3)),
+                    columnWidths: _buildTableColumnWidths(provider.notasDetalladas.first),
+                    children: [
+                      _buildTableHeader(provider.notasDetalladas.first),
+                      ...provider.notasDetalladas.map((nota) => _buildTableRow(nota)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+
+  Map<int, TableColumnWidth> _buildTableColumnWidths(NotaDetalle sampleNota) {
+    final columnWidths = <int, TableColumnWidth>{};
+    int colIndex = 0;
+
+    // Student name column
+    columnWidths[colIndex++] = const FixedColumnWidth(200);
+
+    // Indicator columns (each indicator has 3 criteria + 1 total)
+    for (final indicador in sampleNota.indicadores) {
+      // 3 criteria columns
+      for (int i = 0; i < 3; i++) {
+        columnWidths[colIndex++] = const FixedColumnWidth(80);
+      }
+      // Total column for indicator
+      columnWidths[colIndex++] = const FixedColumnWidth(100);
+    }
+
+    // Total column for cut
+    columnWidths[colIndex++] = const FixedColumnWidth(120);
+
+    return columnWidths;
+  }
+
+  TableRow _buildTableHeader(NotaDetalle sampleNota) {
+    final headerCells = <TableCell>[];
+
+    // Student header
+    headerCells.add(const TableCell(
+      child: Padding(
+        padding: EdgeInsets.all(8),
+        child: Text(
+          'Estudiante',
+          style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    ));
+
+    // Indicator headers
+    for (final indicador in sampleNota.indicadores) {
+      // 3 criteria headers
+      for (int i = 1; i <= 3; i++) {
+        headerCells.add(TableCell(
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Text(
+              'C$i',
+              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ));
+      }
+      // Total header for indicator
+      headerCells.add(const TableCell(
+        child: Padding(
+          padding: EdgeInsets.all(4),
+          child: Text(
+            'Total',
+            style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 12),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ));
+    }
+
+    // Total header for cut
+    headerCells.add(const TableCell(
+      child: Padding(
+        padding: EdgeInsets.all(8),
+        child: Text(
+          'Nota Final',
+          style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    ));
+
+    return TableRow(
+      decoration: BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.1)),
+      children: headerCells,
+    );
+  }
+
+  TableRow _buildTableRow(NotaDetalle nota) {
+    final rowCells = <TableCell>[];
+
+    // Student name cell
+    rowCells.add(TableCell(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              nota.estudianteNombreCompleto,
+              style: const TextStyle(fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
+            ),
+            if (nota.numeroIdentidad != null)
+              Text(
+                'ID: ${nota.numeroIdentidad!}',
+                style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+              ),
+          ],
+        ),
+      ),
+    ));
+
+    // Indicator cells
+    for (final indicador in nota.indicadores) {
+      // 3 criteria cells
+      for (int i = 0; i < 3; i++) {
+        final criterio = i < indicador.criterios.length ? indicador.criterios[i] : null;
+        rowCells.add(TableCell(
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Text(
+              criterio != null ? criterio.puntosObtenidos.toString() : '0',
+              style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ));
+      }
+      // Total cell for indicator
+      rowCells.add(TableCell(
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          color: _getScoreColor(indicador.totalPuntos, indicador.totalMaximo),
+          child: Text(
+            '${indicador.totalPuntos}/${indicador.totalMaximo}',
+            style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ));
+    }
+
+    // Total cell for cut
+    rowCells.add(TableCell(
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        color: _getCalificacionColor(nota.calificacion).withOpacity(0.2),
+        child: Column(
+          children: [
+            Text(
+              '${nota.totalPuntos}/${nota.totalMaximo}',
+              style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: _getCalificacionColor(nota.calificacion),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                nota.calificacion,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${nota.porcentaje.toStringAsFixed(1)}%',
+              style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    ));
+
+    return TableRow(
+      children: rowCells,
+    );
+  }
+
+  Color _getScoreColor(int puntos, int maximo) {
+    if (maximo == 0) return Colors.grey.withOpacity(0.1);
+    final porcentaje = puntos / maximo;
+    if (porcentaje >= 0.9) return Colors.green.withOpacity(0.1);
+    if (porcentaje >= 0.8) return Colors.lightGreen.withOpacity(0.1);
+    if (porcentaje >= 0.7) return Colors.orange.withOpacity(0.1);
+    if (porcentaje >= 0.6) return Colors.deepOrange.withOpacity(0.1);
+    return Colors.red.withOpacity(0.1);
+  }
 
   Color _getCalificacionColor(String calificacion) {
     switch (calificacion) {

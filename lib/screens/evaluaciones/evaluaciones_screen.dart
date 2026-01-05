@@ -240,6 +240,31 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
       color: AppTheme.surfaceColor,
       child: Column(
         children: [
+          // Año Lectivo (mostrar pero no editable en evaluaciones, usa el seleccionado globalmente)
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_today, color: AppTheme.primaryColor),
+                const SizedBox(width: 12),
+                Text(
+                  'Año Lectivo: ${anioProvider.selectedAnio?.anio ?? "No seleccionado"}',
+                  style: TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Asignatura
           _buildDropdown(
             label: 'Asignatura',
@@ -252,6 +277,8 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
                   orElse: () => asignaturaProvider.asignaturas.first,
                 );
                 asignaturaProvider.seleccionarAsignatura(selectedAsignatura);
+                // Recargar datos cuando cambie la asignatura
+                setState(() {});
               }
             },
           ),

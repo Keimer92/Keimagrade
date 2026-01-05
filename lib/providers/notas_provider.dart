@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/nota.dart';
+import '../models/nota_detalle.dart';
+import '../models/corte_evaluativo.dart';
 import '../repositories/notas_repository.dart';
 import '../repositories/estudiante_repository.dart';
 
@@ -8,6 +10,7 @@ class NotasProvider extends ChangeNotifier {
   final EstudianteRepository _estudianteRepository = EstudianteRepository();
   List<Nota> _notas = [];
   List<Nota> _notasFiltradas = [];
+  List<NotaDetalle> _notasDetalladas = [];
   bool _isLoading = false;
 
   // Filtros actuales
@@ -16,15 +19,18 @@ class NotasProvider extends ChangeNotifier {
   int? _asignaturaIdFiltro;
   int? _gradoIdFiltro;
   int? _seccionIdFiltro;
+  int? _corteIdFiltro;
   String? _searchQuery;
 
   List<Nota> get notas => _notasFiltradas;
+  List<NotaDetalle> get notasDetalladas => _notasDetalladas;
   bool get isLoading => _isLoading;
   bool get tieneFiltrosActivos => _anioLectivoIdFiltro != null ||
       _colegioIdFiltro != null ||
       _asignaturaIdFiltro != null ||
       _gradoIdFiltro != null ||
-      _seccionIdFiltro != null;
+      _seccionIdFiltro != null ||
+      _corteIdFiltro != null;
 
   // ============== MÉTODOS PARA FILTROS EN CASCADA ==============
 
@@ -55,6 +61,9 @@ class NotasProvider extends ChangeNotifier {
         asignaturaId: asignaturaId,
         gradoId: gradoId,
       );
+
+  /// Obtiene los cortes evaluativos que tienen indicadores configurados para un año lectivo
+  Future<List<CorteEvaluativo>> obtenerCortesDisponibles(int anioLectivoId) async => await _repository.obtenerCortesPorAnioLectivo(anioLectivoId);
 
   Future<void> cargarNotas() async {
     _isLoading = true;
@@ -141,4 +150,48 @@ class NotasProvider extends ChangeNotifier {
     _searchQuery = null;
     await cargarNotas();
   }
+
+  /// Aplica filtro de corte evaluativo
+  Future<void> aplicarFiltroCorte(int? corteId) async {
+    _corteIdFiltro = corteId;
+    await cargarNotasDetalladas();
+  }
+
+  /// Carga notas detalladas para tabla Excel
+  Future<void> cargarNotasDetalladas() async {
+    if (_corteIdFiltro == null || !(_todosLosFiltrosCompletos())) {
+      _notasDetalladas = [];
+      notifyListeners();
+      return;
+    }
+
+    _isLoading = true;
+    notifyListeners();
+    try {
+      _notasDetalladas = await _repository.obtenerNotasDetalladasPorCorte(
+        anioLectivoId: _anioLectivoIdFiltro!,
+        colegioId: _colegioIdFiltro!,
+        asignaturaId: _asignaturaIdFiltro!,
+        gradoId: _gradoIdFiltro!,
+        seccionId: _seccionIdFiltro!,
+        corteId: _corteIdFiltro!,
+        searchQuery: _searchQuery,
+      );
+    } catch (e) {
+      print('Error al cargar notas detalladas: $e');
+      _notasDetalladas = [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Busca en notas detalladas
+  Future<void> buscarDetalladas(String query) async {
+    _searchQuery = query.isEmpty ? null : query;
+    await cargarNotasDetalladas();
+  }
+
+  /// Verifica si todos los filtros incluyendo corte están completos
+  bool todosLosFiltrosCompletosConCorte() => _todosLosFiltrosCompletos() && _corteIdFiltro != null;
 }

@@ -2,6 +2,7 @@ class CriterioEvaluacion {
 
   CriterioEvaluacion({
     required this.id,
+    required this.anioLectivoId,
     required this.indicadorId,
     required this.numero,
     required this.descripcion,
@@ -13,6 +14,7 @@ class CriterioEvaluacion {
   factory CriterioEvaluacion.fromMap(Map<String, dynamic> map) =>
       CriterioEvaluacion(
         id: map['id'],
+        anioLectivoId: map['anio_lectivo_id'],
         indicadorId: map['indicadorId'],
         numero: map['numero'],
         descripcion: map['descripcion'],
@@ -21,6 +23,7 @@ class CriterioEvaluacion {
         activo: map['activo'] == 1,
       );
   final int id;
+  final int anioLectivoId;
   final int indicadorId;
   final int numero;
   final String descripcion;
@@ -30,6 +33,7 @@ class CriterioEvaluacion {
 
   Map<String, dynamic> toMap() => {
         'id': id,
+        'anio_lectivo_id': anioLectivoId,
         'indicadorId': indicadorId,
         'numero': numero,
         'descripcion': descripcion,
@@ -40,6 +44,7 @@ class CriterioEvaluacion {
 
   CriterioEvaluacion copyWith({
     int? id,
+    int? anioLectivoId,
     int? indicadorId,
     int? numero,
     String? descripcion,
@@ -49,6 +54,7 @@ class CriterioEvaluacion {
   }) =>
       CriterioEvaluacion(
         id: id ?? this.id,
+        anioLectivoId: anioLectivoId ?? this.anioLectivoId,
         indicadorId: indicadorId ?? this.indicadorId,
         numero: numero ?? this.numero,
         descripcion: descripcion ?? this.descripcion,

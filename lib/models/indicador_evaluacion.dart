@@ -2,6 +2,7 @@ class IndicadorEvaluacion {
 
   IndicadorEvaluacion({
     required this.id,
+    required this.anioLectivoId,
     required this.corteId,
     required this.numero,
     required this.descripcion,
@@ -12,6 +13,7 @@ class IndicadorEvaluacion {
   factory IndicadorEvaluacion.fromMap(Map<String, dynamic> map) =>
       IndicadorEvaluacion(
         id: map['id'],
+        anioLectivoId: map['anio_lectivo_id'],
         corteId: map['corteId'],
         numero: map['numero'],
         descripcion: map['descripcion'],
@@ -19,6 +21,7 @@ class IndicadorEvaluacion {
         activo: map['activo'] == 1,
       );
   final int id;
+  final int anioLectivoId;
   final int corteId;
   final int numero;
   final String descripcion;
@@ -27,6 +30,7 @@ class IndicadorEvaluacion {
 
   Map<String, dynamic> toMap() => {
         'id': id,
+        'anio_lectivo_id': anioLectivoId,
         'corteId': corteId,
         'numero': numero,
         'descripcion': descripcion,
@@ -36,6 +40,7 @@ class IndicadorEvaluacion {
 
   IndicadorEvaluacion copyWith({
     int? id,
+    int? anioLectivoId,
     int? corteId,
     int? numero,
     String? descripcion,
@@ -44,6 +49,7 @@ class IndicadorEvaluacion {
   }) =>
       IndicadorEvaluacion(
         id: id ?? this.id,
+        anioLectivoId: anioLectivoId ?? this.anioLectivoId,
         corteId: corteId ?? this.corteId,
         numero: numero ?? this.numero,
         descripcion: descripcion ?? this.descripcion,

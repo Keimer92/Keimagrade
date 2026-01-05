@@ -20,6 +20,17 @@ class CorteEvaluativoRepository {
     return List.generate(maps.length, (i) => CorteEvaluativo.fromMap(maps[i]));
   }
 
+  Future<List<CorteEvaluativo>> obtenerPorAnioLectivo(int anioLectivoId) async {
+    final db = await _dbHelper.database;
+    final maps = await db.query(
+      'cortes_evaluativos',
+      where: 'anio_lectivo_id = ? AND activo = ?',
+      whereArgs: [anioLectivoId, 1],
+      orderBy: 'numero',
+    );
+    return List.generate(maps.length, (i) => CorteEvaluativo.fromMap(maps[i]));
+  }
+
   Future<CorteEvaluativo?> obtenerPorId(int id) async {
     final db = await _dbHelper.database;
     final maps = await db.query(
@@ -35,7 +46,10 @@ class CorteEvaluativoRepository {
 
   Future<int> crear(CorteEvaluativo corte) async {
     final db = await _dbHelper.database;
-    return db.insert('cortes_evaluativos', corte.toMap());
+    final data = corte.toMap();
+    // Remove id from insert data since it's auto-generated
+    data.remove('id');
+    return db.insert('cortes_evaluativos', data);
   }
 
   Future<int> actualizar(CorteEvaluativo corte) async {
