@@ -164,15 +164,17 @@ class NotasProvider extends ChangeNotifier {
   }
 
   /// Carga notas detalladas para tabla Excel
-  Future<void> cargarNotasDetalladas() async {
+  Future<void> cargarNotasDetalladas({bool silent = false}) async {
     if (_corteIdFiltro == null || !_todosLosFiltrosCompletos()) {
       _notasDetalladas = [];
       notifyListeners();
       return;
     }
 
-    _isLoading = true;
-    notifyListeners();
+    if (!silent) {
+      _isLoading = true;
+      notifyListeners();
+    }
     try {
       _notasDetalladas = await _repository.obtenerNotasDetalladasPorCorte(
         anioLectivoId: _anioLectivoIdFiltro!,
@@ -187,7 +189,9 @@ class NotasProvider extends ChangeNotifier {
       print('Error al cargar notas detalladas: $e');
       _notasDetalladas = [];
     } finally {
-      _isLoading = false;
+      if (!silent) {
+        _isLoading = false;
+      }
       notifyListeners();
     }
   }
@@ -209,6 +213,62 @@ class NotasProvider extends ChangeNotifier {
     required String valorCualitativo,
     required double puntosObtenidos,
   }) async {
+    // ACTUALIZACIÓN OPTIMISTA: Actualizar en memoria inmediatamente
+    bool updatedInMemory = false;
+    for (int i = 0; i < _notasDetalladas.length; i++) {
+      if (_notasDetalladas[i].estudianteId == estudianteId) {
+        final notaOrig = _notasDetalladas[i];
+        final nuevosIndicadores = <IndicadorDetalle>[];
+
+        for (final ind in notaOrig.indicadores) {
+          final nuevosCriterios = <CriterioDetalle>[];
+          bool criteriaFoundInThisIndicator = false;
+
+          for (final cri in ind.criterios) {
+            if (cri.id == criterioId) {
+              nuevosCriterios.add(cri.copyWith(
+                puntosObtenidos: puntosObtenidos,
+                valorCualitativo: valorCualitativo,
+              ));
+              criteriaFoundInThisIndicator = true;
+              updatedInMemory = true;
+            } else {
+              nuevosCriterios.add(cri);
+            }
+          }
+
+          if (criteriaFoundInThisIndicator) {
+            final nuevoTotalPuntosInd = nuevosCriterios.fold<double>(
+                0, (sum, c) => sum + c.puntosObtenidos);
+            nuevosIndicadores.add(ind.copyWith(
+              criterios: nuevosCriterios,
+              totalPuntos: nuevoTotalPuntosInd,
+            ));
+          } else {
+            nuevosIndicadores.add(ind);
+          }
+        }
+
+        if (updatedInMemory) {
+          final nuevoTotalPuntosNota = nuevosIndicadores.fold<double>(
+              0, (sum, ind) => sum + ind.totalPuntos);
+          final nuevoPorcentaje = notaOrig.totalMaximo > 0
+              ? (nuevoTotalPuntosNota / notaOrig.totalMaximo) * 100
+              : 0.0;
+          final nuevaCalificacion = _calcularCalificacion(nuevoPorcentaje);
+
+          _notasDetalladas[i] = notaOrig.copyWith(
+            indicadores: nuevosIndicadores,
+            totalPuntos: nuevoTotalPuntosNota,
+            porcentaje: nuevoPorcentaje,
+            calificacion: nuevaCalificacion,
+          );
+          notifyListeners();
+          break;
+        }
+      }
+    }
+
     try {
       await _repository.guardarNotaEstudiante(
         estudianteId: estudianteId,
@@ -217,23 +277,20 @@ class NotasProvider extends ChangeNotifier {
         puntosObtenidos: puntosObtenidos,
       );
 
-      // Actualizar localmente la lista de notas detalladas
-      for (final notaDetalle in _notasDetalladas) {
-        if (notaDetalle.estudianteId == estudianteId) {
-          for (final indicador in notaDetalle.indicadores) {
-            for (var i = 0; i < indicador.criterios.length; i++) {
-              if (indicador.criterios[i].id == criterioId) {
-                // Como los modelos son inmutables (final), tendríamos que recrear el objeto o recargar.
-                // Por ahora, recargamos para asegurar consistencia total.
-                await cargarNotasDetalladas();
-                return;
-              }
-            }
-          }
-        }
-      }
+      // Recarga silenciosa para asegurar sincronización total con lógica de DB (si existe)
+      await cargarNotasDetalladas(silent: true);
     } catch (e) {
       print('Error al guardar nota manual: $e');
+      // En caso de error, forzar recarga con estado de carga para mostrar inconsistencia
+      await cargarNotasDetalladas();
     }
+  }
+
+  String _calcularCalificacion(double porcentaje) {
+    if (porcentaje >= 90) return 'AA';
+    if (porcentaje >= 80) return 'AS';
+    if (porcentaje >= 60) return 'AF';
+    if (porcentaje >= 40) return 'AI';
+    return '-';
   }
 }

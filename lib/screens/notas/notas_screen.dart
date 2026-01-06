@@ -1011,7 +1011,7 @@ class _NotasScreenState extends State<NotasScreen>
                             ? [QualitativeInputFormatter()]
                             : [
                                 FilteringTextInputFormatter.allow(
-                                    RegExp(r'[0-9.]'))
+                                    RegExp(r'[0-9]'))
                               ],
                         onChanged: (value) async {
                           if (esCualitativaReal) {
@@ -1032,17 +1032,18 @@ class _NotasScreenState extends State<NotasScreen>
                                       criterioId: criterio.id,
                                       valorCualitativo: val,
                                       puntosObtenidos:
-                                          f * criterio.puntosMaximos);
+                                          (f * criterio.puntosMaximos)
+                                              .roundToDouble());
                             }
                           } else {
-                            final pts = double.tryParse(value) ?? 0;
+                            final pts = double.tryParse(value) ?? 0.0;
                             await context
                                 .read<NotasProvider>()
                                 .guardarNotaManual(
                                     estudianteId: estudiante.id!,
                                     criterioId: criterio.id,
                                     valorCualitativo: '',
-                                    puntosObtenidos: pts);
+                                    puntosObtenidos: pts.roundToDouble());
                           }
                         },
                         onTapOutside: (_) =>
@@ -1056,13 +1057,9 @@ class _NotasScreenState extends State<NotasScreen>
       rowCells.add(TableCell(
           child: Container(
               padding: const EdgeInsets.all(4),
-              color: esCualitativaReal
-                  ? Colors.transparent
-                  : _getScoreColor(indicadorTotalVal, indicador.totalMaximo),
+              color: _getScoreColor(indicadorTotalVal, indicador.totalMaximo),
               child: Text(
-                  esCualitativaReal
-                      ? '-/${indicador.totalMaximo}'
-                      : '${indicadorTotalVal % 1 == 0 ? indicadorTotalVal.toInt() : indicadorTotalVal.toStringAsFixed(1)}/${indicador.totalMaximo}',
+                  '${indicadorTotalVal.round()}/${indicador.totalMaximo.toInt()}',
                   style: const TextStyle(
                       fontSize: 12,
                       color: AppTheme.textPrimary,
@@ -1080,14 +1077,9 @@ class _NotasScreenState extends State<NotasScreen>
     rowCells.add(TableCell(
       child: Container(
         padding: const EdgeInsets.all(8),
-        color: esCualitativaReal
-            ? Colors.transparent
-            : _getScoreColor(totalPuntosRow, maxTotal).withOpacity(0.2),
+        color: _getScoreColor(totalPuntosRow, maxTotal).withOpacity(0.2),
         child: Column(children: [
-          Text(
-              esCualitativaReal
-                  ? '-/${maxTotal.toInt()}'
-                  : '${totalPuntosRow % 1 == 0 ? totalPuntosRow.toInt() : totalPuntosRow.toStringAsFixed(1)}/${maxTotal.toInt()}',
+          Text('${totalPuntosRow.round()}/${maxTotal.toInt()}',
               style: const TextStyle(
                   fontSize: 14,
                   color: AppTheme.textPrimary,

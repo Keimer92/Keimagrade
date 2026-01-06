@@ -50,6 +50,33 @@ class NotaDetalle {
     }
     return [];
   }
+
+  NotaDetalle copyWith({
+    int? estudianteId,
+    String? estudianteNombre,
+    String? estudianteApellido,
+    String? numeroIdentidad,
+    int? corteId,
+    String? corteNombre,
+    List<IndicadorDetalle>? indicadores,
+    double? totalPuntos,
+    double? totalMaximo,
+    double? porcentaje,
+    String? calificacion,
+  }) =>
+      NotaDetalle(
+        estudianteId: estudianteId ?? this.estudianteId,
+        estudianteNombre: estudianteNombre ?? this.estudianteNombre,
+        estudianteApellido: estudianteApellido ?? this.estudianteApellido,
+        numeroIdentidad: numeroIdentidad ?? this.numeroIdentidad,
+        corteId: corteId ?? this.corteId,
+        corteNombre: corteNombre ?? this.corteNombre,
+        indicadores: indicadores ?? this.indicadores,
+        totalPuntos: totalPuntos ?? this.totalPuntos,
+        totalMaximo: totalMaximo ?? this.totalMaximo,
+        porcentaje: porcentaje ?? this.porcentaje,
+        calificacion: calificacion ?? this.calificacion,
+      );
 }
 
 class IndicadorDetalle {
@@ -87,6 +114,23 @@ class IndicadorDetalle {
     }
     return [];
   }
+
+  IndicadorDetalle copyWith({
+    int? id,
+    int? numero,
+    String? descripcion,
+    List<CriterioDetalle>? criterios,
+    double? totalPuntos,
+    double? totalMaximo,
+  }) =>
+      IndicadorDetalle(
+        id: id ?? this.id,
+        numero: numero ?? this.numero,
+        descripcion: descripcion ?? this.descripcion,
+        criterios: criterios ?? this.criterios,
+        totalPuntos: totalPuntos ?? this.totalPuntos,
+        totalMaximo: totalMaximo ?? this.totalMaximo,
+      );
 }
 
 class CriterioDetalle {
@@ -114,4 +158,21 @@ class CriterioDetalle {
   final double puntosMaximos;
   final double puntosObtenidos;
   final String? valorCualitativo;
+
+  CriterioDetalle copyWith({
+    int? id,
+    int? numero,
+    String? descripcion,
+    double? puntosMaximos,
+    double? puntosObtenidos,
+    String? valorCualitativo,
+  }) =>
+      CriterioDetalle(
+        id: id ?? this.id,
+        numero: numero ?? this.numero,
+        descripcion: descripcion ?? this.descripcion,
+        puntosMaximos: puntosMaximos ?? this.puntosMaximos,
+        puntosObtenidos: puntosObtenidos ?? this.puntosObtenidos,
+        valorCualitativo: valorCualitativo ?? this.valorCualitativo,
+      );
 }
