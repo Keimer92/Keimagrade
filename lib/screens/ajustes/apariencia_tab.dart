@@ -166,7 +166,7 @@ class _AparienciaTabState extends State<AparienciaTab> {
                   ),
                   child: Row(
                     children: [
-                      Expanded(
+                      const Expanded(
                         child: Text(
                           'Presiona "Guardar" para aplicar todos los cambios de tema y orden.',
                           style: TextStyle(
@@ -201,8 +201,7 @@ class _AparienciaTabState extends State<AparienciaTab> {
         },
       );
 
-  Widget _buildThemeModeSelector(AparienciaProvider provider) {
-    return Column(
+  Widget _buildThemeModeSelector(AparienciaProvider provider) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
@@ -242,7 +241,6 @@ class _AparienciaTabState extends State<AparienciaTab> {
         ),
       ],
     );
-  }
 
   Widget _buildModeCard({
     required BuildContext context,

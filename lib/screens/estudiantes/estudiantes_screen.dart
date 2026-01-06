@@ -501,9 +501,9 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).cardColor,
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
             Text('Procesando archivo Excel...'),
@@ -672,9 +672,9 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).cardColor,
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
             Text('Importando estudiantes...'),

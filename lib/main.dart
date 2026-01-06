@@ -37,8 +37,7 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => AparienciaProvider()),
         ],
         child: Consumer<AparienciaProvider>(
-          builder: (context, apariencia, _) {
-            return MaterialApp(
+          builder: (context, apariencia, _) => MaterialApp(
               title: 'Keimagrade',
               theme: AppTheme.buildTheme(
                   apariencia.primaryColor, Brightness.light),
@@ -47,8 +46,7 @@ class MyApp extends StatelessWidget {
               themeMode: apariencia.themeMode,
               home: const HomeScreen(),
               debugShowCheckedModeBanner: false,
-            );
-          },
+            ),
         ),
       );
 }

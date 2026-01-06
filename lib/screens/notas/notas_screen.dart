@@ -59,10 +59,10 @@ class _NotasScreenState extends State<NotasScreen>
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
-    for (var node in _focusNodes.values) {
+    for (final node in _focusNodes.values) {
       node.dispose();
     }
-    for (var controller in _controllers.values) {
+    for (final controller in _controllers.values) {
       controller.dispose();
     }
     super.dispose();
@@ -563,7 +563,7 @@ class _NotasScreenState extends State<NotasScreen>
     required Function(String?) onChanged,
   }) =>
       DropdownButtonFormField<String>(
-        value: value != 'Seleccionar' && items.contains(value) ? value : null,
+        initialValue: value != 'Seleccionar' && items.contains(value) ? value : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -717,13 +717,13 @@ class _NotasScreenState extends State<NotasScreen>
           final estudiantesFiltrados =
               _filtrarEstudiantes(estudianteProvider.estudiantes);
           if (indicadorProvider.indicadores.isEmpty) {
-            return Center(
+            return const Center(
                 child: EmptyState(
                     message: 'No hay indicadores configurados',
                     icon: Icons.assignment_late));
           }
           if (estudiantesFiltrados.isEmpty) {
-            return Center(
+            return const Center(
                 child: EmptyState(
                     message: 'No hay estudiantes para calificar',
                     icon: Icons.people));
@@ -794,8 +794,9 @@ class _NotasScreenState extends State<NotasScreen>
     int colIndex = 0;
     columnWidths[colIndex++] = const FixedColumnWidth(200);
     for (int i = 0; i < indicadores.length; i++) {
-      for (int j = 0; j < 3; j++)
+      for (int j = 0; j < 3; j++) {
         columnWidths[colIndex++] = const FixedColumnWidth(60);
+      }
       columnWidths[colIndex++] = const FixedColumnWidth(80);
     }
     columnWidths[colIndex++] = const FixedColumnWidth(100);
@@ -985,9 +986,9 @@ class _NotasScreenState extends State<NotasScreen>
                             final val = value.toUpperCase();
                             if (['AA', 'AS', 'AF', 'AI'].contains(val)) {
                               double f = 0;
-                              if (val == 'AA')
+                              if (val == 'AA') {
                                 f = 1.0;
-                              else if (val == 'AS')
+                              } else if (val == 'AS')
                                 f = 0.8;
                               else if (val == 'AF')
                                 f = 0.6;
@@ -1036,7 +1037,7 @@ class _NotasScreenState extends State<NotasScreen>
     }
 
     final double maxTotal =
-        indicadores.fold(0.0, (sum, ind) => sum + ind.totalMaximo);
+        indicadores.fold(0, (sum, ind) => sum + ind.totalMaximo);
     final califFinal = esCualitativaReal
         ? _calcularModa(indicadores)
         : _calculateGrade(totalPuntosRow, false);
@@ -1174,16 +1175,16 @@ class _NotasScreenState extends State<NotasScreen>
       numeroIdentidad: estudiante.numeroIdentidad,
       corteId: corteId,
       corteNombre: corteNombre,
-      totalPuntos: 0.0,
-      totalMaximo: 100.0,
-      porcentaje: 0.0,
+      totalPuntos: 0,
+      totalMaximo: 100,
+      porcentaje: 0,
       calificacion: '-',
       indicadores: indicadores
           .map((i) => IndicadorDetalle(
               id: i.id!,
               numero: i.numero,
               descripcion: i.descripcion,
-              totalPuntos: 0.0,
+              totalPuntos: 0,
               totalMaximo: i.puntosTotales,
               criterios: i.criterios
                   .map((c) => CriterioDetalle(
@@ -1191,7 +1192,7 @@ class _NotasScreenState extends State<NotasScreen>
                       numero: c.numero,
                       descripcion: c.descripcion,
                       puntosMaximos: c.puntosMaximos,
-                      puntosObtenidos: 0.0,
+                      puntosObtenidos: 0,
                       valorCualitativo: ''))
                   .toList()))
           .toList(),

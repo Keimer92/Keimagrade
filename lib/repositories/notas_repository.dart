@@ -304,7 +304,7 @@ class NotasRepository {
 
         // Calculate indicator total
         final totalPuntos = criterios.fold<double>(
-            0.0, (sum, criterio) => sum + criterio.puntosObtenidos);
+            0, (sum, criterio) => sum + criterio.puntosObtenidos);
         final totalMaximo = (indicadorMap['puntosTotales'] as num).toDouble();
 
         indicadores.add(IndicadorDetalle(
@@ -319,9 +319,9 @@ class NotasRepository {
 
       // Calculate total for the cut
       final totalPuntos = indicadores.fold<double>(
-          0.0, (sum, indicador) => sum + indicador.totalPuntos);
+          0, (sum, indicador) => sum + indicador.totalPuntos);
       final totalMaximo = indicadores.fold<double>(
-          0.0, (sum, indicador) => sum + indicador.totalMaximo);
+          0, (sum, indicador) => sum + indicador.totalMaximo);
 
       final porcentaje =
           totalMaximo > 0 ? (totalPuntos / totalMaximo) * 100 : 0.0;
