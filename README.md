@@ -90,4 +90,4 @@ Este proyecto está bajo la Licencia MIT. Consulta el archivo `LICENSE` para má
 
 ---
 
-**Desarrollado con ❤️ por [Tu Nombre/Organización]**
+**Desarrollado con ❤️ por Keimer**
