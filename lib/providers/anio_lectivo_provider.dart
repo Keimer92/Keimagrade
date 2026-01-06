@@ -21,13 +21,21 @@ class AnioLectivoProvider extends ChangeNotifier {
     try {
       _anios = await _repository.obtenerActivos();
       if (_anios.isNotEmpty) {
-        _selectedAnio = _anios.first;
+        // Seleccionar el año por defecto si existe, sino el primero
+        _selectedAnio = _anios.firstWhere(
+          (anio) => anio.porDefecto,
+          orElse: () => _anios.first,
+        );
       } else {
         // Si no hay años, cargar datos por defecto
         await _cargarDatosPorDefecto();
         _anios = await _repository.obtenerActivos();
         if (_anios.isNotEmpty) {
-          _selectedAnio = _anios.first;
+          // Después de crear datos por defecto, seleccionar el año por defecto
+          _selectedAnio = _anios.firstWhere(
+            (anio) => anio.porDefecto,
+            orElse: () => _anios.first,
+          );
         }
       }
     } catch (e) {

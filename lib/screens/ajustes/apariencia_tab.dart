@@ -38,15 +38,39 @@ class _AparienciaTabState extends State<AparienciaTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.palette, color: AppTheme.primaryColor),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Personalizar Apariencia',
-                          style: TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                        Row(
+                          children: [
+                            Icon(Icons.palette, color: AppTheme.primaryColor),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Personalizar Apariencia',
+                              style: TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            await aparienciaProvider.applyChanges();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Cambios aplicados correctamente'),
+                                  backgroundColor: AppTheme.primaryColor,
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.check),
+                          label: const Text('Aplicar Cambios'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryColor,
+                            foregroundColor: AppTheme.backgroundColor,
                           ),
                         ),
                       ],
@@ -156,42 +180,19 @@ class _AparienciaTabState extends State<AparienciaTab> {
                 ),
               ),
 
-              // Footer con botones de acción
+              // Footer informativo
               Container(
                 padding: const EdgeInsets.all(16),
                 color: AppTheme.surfaceColor,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Los cambios no se aplican hasta presionar "Aplicar Cambios".',
-                        style: TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
+                child: Center(
+                  child: Text(
+                    'Arrastra las pantallas para reordenarlas y presiona "Aplicar Cambios" para guardar.',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 12,
                     ),
-                    const SizedBox(width: 16),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        await aparienciaProvider.applyChanges();
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Cambios aplicados correctamente'),
-                              backgroundColor: AppTheme.primaryColor,
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.check),
-                      label: const Text('Aplicar Cambios'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: AppTheme.backgroundColor,
-                      ),
-                    ),
-                  ],
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
             ],

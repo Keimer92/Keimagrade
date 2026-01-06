@@ -28,13 +28,19 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      context.read<EstudianteProvider>().cargarEstudiantes();
-      context.read<AnioLectivoProvider>().cargarAnios();
-      context.read<ColegioProvider>().cargarColegios();
-      context.read<AsignaturaProvider>().cargarAsignaturas();
-      context.read<GradoProvider>().cargarGrados();
-      context.read<SeccionProvider>().cargarSecciones();
+    Future.microtask(() async {
+      await context.read<EstudianteProvider>().cargarEstudiantes();
+      await context.read<AnioLectivoProvider>().cargarAnios();
+      await context.read<ColegioProvider>().cargarColegios();
+      await context.read<AsignaturaProvider>().cargarAsignaturas();
+      await context.read<GradoProvider>().cargarGrados();
+      await context.read<SeccionProvider>().cargarSecciones();
+
+      // Si hay un año seleccionado (por defecto), iniciar la cascada automáticamente
+      final anioProvider = context.read<AnioLectivoProvider>();
+      if (anioProvider.selectedAnio != null) {
+        await _seleccionarEnCascadaDesdeAnio(anioProvider.selectedAnio!.id!);
+      }
     });
   }
 

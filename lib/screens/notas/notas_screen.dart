@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../../models/nota.dart';
 import '../../models/nota_detalle.dart';
 import '../../models/corte_evaluativo.dart';
+import '../../models/estudiante.dart';
 import '../../providers/anio_lectivo_provider.dart';
+import '../../providers/estudiante_provider.dart';
 import '../../providers/asignatura_provider.dart';
 import '../../providers/colegio_provider.dart';
 import '../../providers/corte_evaluativo_provider.dart';
@@ -26,14 +28,20 @@ class _NotasScreenState extends State<NotasScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      context.read<NotasProvider>().cargarNotas();
-      context.read<AnioLectivoProvider>().cargarAnios();
-      context.read<ColegioProvider>().cargarColegios();
-      context.read<AsignaturaProvider>().cargarAsignaturas();
-      context.read<GradoProvider>().cargarGrados();
-      context.read<SeccionProvider>().cargarSecciones();
-      context.read<CorteEvaluativoProvider>().cargarCortes();
+    Future.microtask(() async {
+      await context.read<NotasProvider>().cargarNotas();
+      await context.read<AnioLectivoProvider>().cargarAnios();
+      await context.read<ColegioProvider>().cargarColegios();
+      await context.read<AsignaturaProvider>().cargarAsignaturas();
+      await context.read<GradoProvider>().cargarGrados();
+      await context.read<SeccionProvider>().cargarSecciones();
+      await context.read<CorteEvaluativoProvider>().cargarCortes();
+
+      // Si hay un año seleccionado (por defecto), iniciar la cascada automáticamente
+      final anioProvider = context.read<AnioLectivoProvider>();
+      if (anioProvider.selectedAnio != null) {
+        await _seleccionarEnCascadaDesdeAnio(anioProvider.selectedAnio!.id!);
+      }
     });
   }
 
@@ -64,12 +72,6 @@ class _NotasScreenState extends State<NotasScreen> {
           _buildContent(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showSearchDialog,
-        backgroundColor: AppTheme.primaryColor,
-        child: const Icon(Icons.search),
-        tooltip: 'Buscar estudiante',
-      ),
     );
   }
 
@@ -80,12 +82,27 @@ class _NotasScreenState extends State<NotasScreen> {
     final gradoProvider = context.read<GradoProvider>();
     final seccionProvider = context.read<SeccionProvider>();
 
+    final anioId = anioProvider.selectedAnio?.id;
+    final colegioId = colegioProvider.selectedColegio?.id;
+    final asignaturaId = asignaturaProvider.selectedAsignatura?.id;
+    final gradoId = gradoProvider.selectedGrado?.id;
+    final seccionId = seccionProvider.selectedSeccion?.id;
+
     context.read<NotasProvider>().aplicarFiltros(
-      anioLectivoId: anioProvider.selectedAnio?.id,
-      colegioId: colegioProvider.selectedColegio?.id,
-      asignaturaId: asignaturaProvider.selectedAsignatura?.id,
-      gradoId: gradoProvider.selectedGrado?.id,
-      seccionId: seccionProvider.selectedSeccion?.id,
+      anioLectivoId: anioId,
+      colegioId: colegioId,
+      asignaturaId: asignaturaId,
+      gradoId: gradoId,
+      seccionId: seccionId,
+    );
+
+    // Also apply filters to EstudianteProvider so the table shows filtered students
+    context.read<EstudianteProvider>().aplicarFiltros(
+      anioLectivoId: anioId,
+      colegioId: colegioId,
+      asignaturaId: asignaturaId,
+      gradoId: gradoId,
+      seccionId: seccionId,
     );
   }
 
@@ -263,6 +280,23 @@ class _NotasScreenState extends State<NotasScreen> {
                                   );
                                   corteProvider.seleccionarCorte(selectedCorte);
                                   notasProvider.aplicarFiltroCorte(selectedCorte.id);
+
+                                  // If all filters are now complete, apply them to EstudianteProvider for the table
+                                  final anioId = context.read<AnioLectivoProvider>().selectedAnio?.id;
+                                  final colegioId = context.read<ColegioProvider>().selectedColegio?.id;
+                                  final asignaturaId = context.read<AsignaturaProvider>().selectedAsignatura?.id;
+                                  final gradoId = context.read<GradoProvider>().selectedGrado?.id;
+                                  final seccionId = context.read<SeccionProvider>().selectedSeccion?.id;
+
+                                  if (anioId != null && colegioId != null && asignaturaId != null && gradoId != null && seccionId != null) {
+                                    context.read<EstudianteProvider>().aplicarFiltros(
+                                      anioLectivoId: anioId,
+                                      colegioId: colegioId,
+                                      asignaturaId: asignaturaId,
+                                      gradoId: gradoId,
+                                      seccionId: seccionId,
+                                    );
+                                  }
                                 }
                               },
                             ),
@@ -381,23 +415,34 @@ class _NotasScreenState extends State<NotasScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            // Botón para limpiar filtros
-            Consumer<NotasProvider>(
-              builder: (context, provider, _) {
-                if (provider.tieneFiltrosActivos) {
-                  return Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        provider.limpiarFiltros();
-                      },
-                      icon: const Icon(Icons.clear_all, size: 18),
-                      label: const Text('Limpiar filtros'),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
+            // Fila con botón de limpiar filtros y botón de búsqueda
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Botón para limpiar filtros
+                Consumer<NotasProvider>(
+                  builder: (context, provider, _) {
+                    if (provider.tieneFiltrosActivos) {
+                      return TextButton.icon(
+                        onPressed: () {
+                          provider.limpiarFiltros();
+                        },
+                        icon: const Icon(Icons.clear_all, size: 18),
+                        label: const Text('Limpiar filtros'),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+                // Botón de búsqueda integrado
+                FloatingActionButton(
+                  onPressed: _showSearchDialog,
+                  backgroundColor: AppTheme.primaryColor,
+                  mini: true, // Tamaño más pequeño
+                  child: const Icon(Icons.search, size: 20),
+                  tooltip: 'Buscar estudiante',
+                ),
+              ],
             ),
           ],
         ),
@@ -644,15 +689,68 @@ class _NotasScreenState extends State<NotasScreen> {
         },
       );
 
-  Widget _buildContent() => Consumer<NotasProvider>(
-        builder: (context, provider, _) {
-          // If Corte is selected, show the detailed table
-          if (provider.todosLosFiltrosCompletosConCorte()) {
-            return _buildNotasTable();
+  Widget _buildContent() => Consumer2<NotasProvider, CorteEvaluativoProvider>(
+        builder: (context, notasProvider, corteProvider, _) {
+          // If Corte is selected, show the editable grades table
+          if (corteProvider.selectedCorte != null) {
+            return _buildEditableGradesTable();
           } else {
             // Otherwise, show the list view
             return _buildNotasList();
           }
+        },
+      );
+
+  Widget _buildEditableGradesTable() => Consumer3<NotasProvider, AsignaturaProvider, EstudianteProvider>(
+        builder: (context, notasProvider, asignaturaProvider, estudianteProvider, _) {
+          if (notasProvider.isLoading || estudianteProvider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+              ),
+            );
+          }
+
+          // Get filtered students
+          final estudiantesFiltrados = _filtrarEstudiantes(estudianteProvider.estudiantes);
+
+          if (estudiantesFiltrados.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  EmptyState(
+                    message: 'No hay estudiantes para calificar',
+                    icon: Icons.people,
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    'Configure los filtros para seleccionar estudiantes',
+                    style: TextStyle(color: AppTheme.textSecondary),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SingleChildScrollView(
+                child: Container(
+                  color: AppTheme.surfaceColor,
+                  child: Table(
+                    border: TableBorder.all(color: AppTheme.textTertiary.withOpacity(0.3)),
+                    columnWidths: _buildEditableTableColumnWidths(),
+                    children: [
+                      _buildEditableTableHeader(),
+                      ...estudiantesFiltrados.map((estudiante) => _buildEditableTableRow(estudiante, asignaturaProvider.selectedAsignatura?.cualitativo ?? false)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
         },
       );
 
@@ -896,6 +994,272 @@ class _NotasScreenState extends State<NotasScreen> {
     if (porcentaje >= 0.7) return Colors.orange.withOpacity(0.1);
     if (porcentaje >= 0.6) return Colors.deepOrange.withOpacity(0.1);
     return Colors.red.withOpacity(0.1);
+  }
+
+  List<Estudiante> _filtrarEstudiantes(List<Estudiante> estudiantes) {
+    final query = _searchController.text.toLowerCase();
+    if (query.isEmpty) return estudiantes;
+
+    return estudiantes.where((estudiante) {
+      final nombreCompleto = estudiante.nombreCompleto.toLowerCase();
+      final identidad = estudiante.numeroIdentidad?.toLowerCase() ?? '';
+      return nombreCompleto.contains(query) || identidad.contains(query);
+    }).toList();
+  }
+
+  Map<int, TableColumnWidth> _buildEditableTableColumnWidths() {
+    final columnWidths = <int, TableColumnWidth>{};
+    int colIndex = 0;
+
+    // Student name column
+    columnWidths[colIndex++] = const FixedColumnWidth(200);
+
+    // 5 indicators × (3 criteria + 1 total) = 20 columns
+    for (int i = 0; i < 5; i++) {
+      // 3 criteria columns per indicator
+      for (int j = 0; j < 3; j++) {
+        columnWidths[colIndex++] = const FixedColumnWidth(60);
+      }
+      // 1 total column per indicator
+      columnWidths[colIndex++] = const FixedColumnWidth(80);
+    }
+
+    // Total points column
+    columnWidths[colIndex++] = const FixedColumnWidth(100);
+
+    return columnWidths;
+  }
+
+  TableRow _buildEditableTableHeader() {
+    final headerCells = <TableCell>[];
+
+    // Student header
+    headerCells.add(const TableCell(
+      child: Padding(
+        padding: EdgeInsets.all(8),
+        child: Text(
+          'Estudiante',
+          style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    ));
+
+    // Indicator headers (I, II, III, IV, V)
+    for (int indicadorIndex = 1; indicadorIndex <= 5; indicadorIndex++) {
+      final romanNumeral = _getRomanNumeral(indicadorIndex);
+
+      // 3 criteria headers per indicator
+      for (int criterioIndex = 1; criterioIndex <= 3; criterioIndex++) {
+        headerCells.add(TableCell(
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Text(
+              '$romanNumeral.$criterioIndex',
+              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 11),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ));
+      }
+
+      // Total header for indicator
+      headerCells.add(TableCell(
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Text(
+            '$romanNumeral Total',
+            style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 10),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ));
+    }
+
+    // Total points header
+    headerCells.add(const TableCell(
+      child: Padding(
+        padding: EdgeInsets.all(8),
+        child: Text(
+          'Total Puntos',
+          style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    ));
+
+    return TableRow(
+      decoration: BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.1)),
+      children: headerCells,
+    );
+  }
+
+  TableRow _buildEditableTableRow(Estudiante estudiante, bool esCualitativa) {
+    final rowCells = <TableCell>[];
+
+    // Student name cell
+    rowCells.add(TableCell(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              estudiante.nombreCompleto,
+              style: const TextStyle(fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
+            ),
+            if (estudiante.numeroIdentidad != null)
+              Text(
+                'ID: ${estudiante.numeroIdentidad!}',
+                style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+              ),
+          ],
+        ),
+      ),
+    ));
+
+    // Editable cells for each indicator and criteria
+    int totalPuntos = 0;
+
+    for (int indicadorIndex = 0; indicadorIndex < 5; indicadorIndex++) {
+      int indicadorTotal = 0;
+
+      // 3 criteria cells per indicator
+      for (int criterioIndex = 0; criterioIndex < 3; criterioIndex++) {
+        if (esCualitativa) {
+          // For qualitative subjects, show dropdown or simple input
+          rowCells.add(TableCell(
+            child: Padding(
+              padding: const EdgeInsets.all(2),
+              child: Container(
+                height: 30,
+                child: TextFormField(
+                  initialValue: '0',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    isDense: true,
+                  ),
+                  onChanged: (value) {
+                    // Handle qualitative input (A, B, C, etc.)
+                  },
+                ),
+              ),
+            ),
+          ));
+        } else {
+          // For quantitative subjects, show numeric input
+          rowCells.add(TableCell(
+            child: Padding(
+              padding: const EdgeInsets.all(2),
+              child: Container(
+                height: 30,
+                child: TextFormField(
+                  initialValue: '0',
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    isDense: true,
+                  ),
+                  onChanged: (value) {
+                    final puntos = int.tryParse(value) ?? 0;
+                    indicadorTotal += puntos;
+                    // Update total calculations
+                  },
+                ),
+              ),
+            ),
+          ));
+        }
+      }
+
+      // Total cell for indicator
+      rowCells.add(TableCell(
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          color: _getScoreColor(indicadorTotal, esCualitativa ? 12 : 20), // Max per indicator
+          child: Text(
+            '$indicadorTotal/${esCualitativa ? 12 : 20}',
+            style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ));
+
+      totalPuntos += indicadorTotal;
+    }
+
+    // Total points cell
+    rowCells.add(TableCell(
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        color: _getScoreColor(totalPuntos, esCualitativa ? 60 : 100), // Max total
+        child: Column(
+          children: [
+            Text(
+              '$totalPuntos/${esCualitativa ? 60 : 100}',
+              style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: _getCalificacionColor(_calculateGrade(totalPuntos, esCualitativa)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _calculateGrade(totalPuntos, esCualitativa),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ));
+
+    return TableRow(
+      children: rowCells,
+    );
+  }
+
+  String _getRomanNumeral(int number) {
+    switch (number) {
+      case 1: return 'I';
+      case 2: return 'II';
+      case 3: return 'III';
+      case 4: return 'IV';
+      case 5: return 'V';
+      default: return number.toString();
+    }
+  }
+
+  String _calculateGrade(int puntos, bool esCualitativa) {
+    if (esCualitativa) {
+      // Qualitative grading logic
+      if (puntos >= 54) return 'A';
+      if (puntos >= 48) return 'B';
+      if (puntos >= 42) return 'C';
+      if (puntos >= 36) return 'D';
+      return 'F';
+    } else {
+      // Quantitative grading logic
+      final porcentaje = (puntos / 100) * 100;
+      if (porcentaje >= 90) return 'A';
+      if (porcentaje >= 80) return 'B';
+      if (porcentaje >= 70) return 'C';
+      if (porcentaje >= 60) return 'D';
+      return 'F';
+    }
   }
 
   Color _getCalificacionColor(String calificacion) {
