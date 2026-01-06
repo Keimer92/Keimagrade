@@ -13,16 +13,16 @@ class CriterioEvaluacion {
 
   factory CriterioEvaluacion.fromMap(Map<String, dynamic> map) =>
       CriterioEvaluacion(
-        id: map['id'],
-        anioLectivoId: map['anio_lectivo_id'],
-        indicadorId: map['indicadorId'],
-        numero: map['numero'],
-        descripcion: map['descripcion'],
-        puntosMaximos: map['puntosMaximos'],
-        puntosObtenidos: map['puntosObtenidos'],
+        id: map['id'] as int,
+        anioLectivoId: map['anio_lectivo_id'] as int,
+        indicadorId: map['indicadorId'] as int,
+        numero: map['numero'] as int,
+        descripcion: map['descripcion'] as String,
+        puntosMaximos: map['puntosMaximos'] as int,
+        puntosObtenidos: map['puntosObtenidos'] as int,
         activo: map['activo'] == 1,
       );
-  final int id;
+  final int? id;
   final int anioLectivoId;
   final int indicadorId;
   final int numero;
@@ -32,7 +32,6 @@ class CriterioEvaluacion {
   final bool activo;
 
   Map<String, dynamic> toMap() => {
-        'id': id,
         'anio_lectivo_id': anioLectivoId,
         'indicadorId': indicadorId,
         'numero': numero,

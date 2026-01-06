@@ -3,7 +3,8 @@ import '../models/indicador_evaluacion.dart';
 import '../repositories/indicador_evaluacion_repository.dart';
 
 class IndicadorEvaluacionProvider extends ChangeNotifier {
-  final IndicadorEvaluacionRepository _repository = IndicadorEvaluacionRepository();
+  final IndicadorEvaluacionRepository _repository =
+      IndicadorEvaluacionRepository();
   List<IndicadorEvaluacion> _indicadores = [];
   IndicadorEvaluacion? _selectedIndicador;
   bool _isLoading = false;
@@ -44,7 +45,7 @@ class IndicadorEvaluacionProvider extends ChangeNotifier {
     }
   }
 
-  void seleccionarIndicador(IndicadorEvaluacion indicador) {
+  void seleccionarIndicador(IndicadorEvaluacion? indicador) {
     _selectedIndicador = indicador;
     notifyListeners();
   }

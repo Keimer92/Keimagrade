@@ -66,4 +66,13 @@ class CriterioEvaluacionRepository {
       whereArgs: [id],
     );
   }
+
+  Future<int> eliminarPorIndicador(int indicadorId) async {
+    final db = await _dbHelper.database;
+    return db.delete(
+      'criterios_evaluacion',
+      where: 'indicadorId = ?',
+      whereArgs: [indicadorId],
+    );
+  }
 }

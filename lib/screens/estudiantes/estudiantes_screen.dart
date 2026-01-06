@@ -55,11 +55,11 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.surfaceColor,
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.search, color: AppTheme.primaryColor),
-            const SizedBox(width: 8),
-            const Text(
+            Icon(Icons.search, color: AppTheme.primaryColor),
+            SizedBox(width: 8),
+            Text(
               'Buscar Estudiante',
               style: TextStyle(
                 color: AppTheme.textPrimary,
@@ -824,8 +824,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _showSearchDialog,
         backgroundColor: AppTheme.primaryColor,
-        child: const Icon(Icons.search),
         tooltip: 'Buscar estudiante',
+        child: const Icon(Icons.search),
       ),
     );
   }

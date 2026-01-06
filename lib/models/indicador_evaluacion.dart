@@ -12,15 +12,15 @@ class IndicadorEvaluacion {
 
   factory IndicadorEvaluacion.fromMap(Map<String, dynamic> map) =>
       IndicadorEvaluacion(
-        id: map['id'],
-        anioLectivoId: map['anio_lectivo_id'],
-        corteId: map['corteId'],
-        numero: map['numero'],
-        descripcion: map['descripcion'],
-        puntosTotales: map['puntosTotales'],
+        id: map['id'] as int,
+        anioLectivoId: map['anio_lectivo_id'] as int,
+        corteId: map['corteId'] as int,
+        numero: map['numero'] as int,
+        descripcion: map['descripcion'] as String,
+        puntosTotales: map['puntosTotales'] as int,
         activo: map['activo'] == 1,
       );
-  final int id;
+  final int? id;
   final int anioLectivoId;
   final int corteId;
   final int numero;
@@ -29,7 +29,6 @@ class IndicadorEvaluacion {
   final bool activo;
 
   Map<String, dynamic> toMap() => {
-        'id': id,
         'anio_lectivo_id': anioLectivoId,
         'corteId': corteId,
         'numero': numero,

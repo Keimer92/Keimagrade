@@ -5,6 +5,8 @@ import '../../providers/asignatura_provider.dart';
 import '../../providers/corte_evaluativo_provider.dart';
 import '../../providers/indicador_evaluacion_provider.dart';
 import '../../providers/criterio_evaluacion_provider.dart';
+import '../../repositories/corte_evaluativo_repository.dart';
+import '../../database/database_helper.dart'; // Añadido para transacciones
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_widgets.dart';
 
@@ -21,15 +23,19 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
   late CorteEvaluativoProvider _corteProvider;
   late IndicadorEvaluacionProvider _indicadorProvider;
   late CriterioEvaluacionProvider _criterioProvider;
-  
+
   // Controladores para los campos de texto de criterios (solo para asignaturas cuantitativas)
-  final List<TextEditingController> _criterioControllers = List.generate(15, (index) => TextEditingController());
+  final List<TextEditingController> _criterioControllers =
+      List.generate(15, (index) => TextEditingController());
   // Controladores para las descripciones de criterios
-  final List<TextEditingController> _criterioDescripcionControllers = List.generate(15, (index) => TextEditingController());
+  final List<TextEditingController> _criterioDescripcionControllers =
+      List.generate(15, (index) => TextEditingController());
   // Controladores para las descripciones de indicadores
-  final List<TextEditingController> _indicadorDescripcionControllers = List.generate(5, (index) => TextEditingController());
+  final List<TextEditingController> _indicadorDescripcionControllers =
+      List.generate(5, (index) => TextEditingController());
   // Estado para los totales de indicadores (solo para asignaturas cuantitativas)
-  final List<int> _indicadorTotales = List.filled(5, 20); // 5 indicadores, cada uno con 20 puntos por defecto
+  final List<int> _indicadorTotales =
+      List.filled(5, 20); // 5 indicadores, cada uno con 20 puntos por defecto
   // Estados de validación para criterios individuales
   final List<bool> _criterioErrores = List.filled(15, false);
   // Estados de validación para totales de indicadores
@@ -42,37 +48,44 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
     _corteProvider = CorteEvaluativoProvider();
     _indicadorProvider = IndicadorEvaluacionProvider();
     _criterioProvider = CriterioEvaluacionProvider();
-    
+
     // Cargar datos iniciales
     Future.microtask(() {
       _corteProvider.cargarCortes();
       _indicadorProvider.cargarIndicadores();
       _criterioProvider.cargarCriterios();
       // Cargar asignaturas para que estén disponibles en el dropdown
-      Provider.of<AsignaturaProvider>(context, listen: false).cargarAsignaturas();
+      Provider.of<AsignaturaProvider>(context, listen: false)
+          .cargarAsignaturas();
     });
-    
+
     // Configurar controladores con valores por defecto y listeners (solo para puntos)
     for (int i = 0; i < 15; i++) {
       final int numeroCriterio = (i % 3) + 1;
-      final String defaultValue = numeroCriterio == 1 ? '7' : numeroCriterio == 2 ? '7' : '6';
+      final String defaultValue = numeroCriterio == 1
+          ? '7'
+          : numeroCriterio == 2
+              ? '7'
+              : '6';
       _criterioControllers[i].text = defaultValue;
-      
+
       _criterioControllers[i].addListener(() {
         _validarCriterio(i);
         _calcularTotalIndicador(i ~/ 3);
       });
     }
-    
+
     // Configurar descripciones por defecto para indicadores
     for (int i = 0; i < 5; i++) {
-      _indicadorDescripcionControllers[i].text = 'Descripción del Indicador ${i + 1}';
+      _indicadorDescripcionControllers[i].text =
+          'Descripción del Indicador ${i + 1}';
     }
-    
+
     // Configurar descripciones por defecto para criterios
     for (int i = 0; i < 15; i++) {
       final int numeroCriterio = (i % 3) + 1;
-      _criterioDescripcionControllers[i].text = 'Descripción del Criterio $numeroCriterio';
+      _criterioDescripcionControllers[i].text =
+          'Descripción del Criterio $numeroCriterio';
     }
   }
 
@@ -95,7 +108,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
   void _validarCriterio(int criterioIndex) {
     final text = _criterioControllers[criterioIndex].text;
     final value = int.tryParse(text) ?? 0;
-    
+
     setState(() {
       _criterioErrores[criterioIndex] = value > 8;
     });
@@ -114,7 +127,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
           }
         }
       }
-      
+
       setState(() {
         _indicadorTotales[numeroIndicador] = total;
         _indicadorErrores[numeroIndicador] = total > 20;
@@ -124,7 +137,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
 
   bool _validarFormulario() {
     bool hayErrores = false;
-    
+
     // Validar criterios individuales
     for (int i = 0; i < 15; i++) {
       if (_criterioErrores[i]) {
@@ -132,7 +145,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
         break;
       }
     }
-    
+
     // Validar totales de indicadores
     if (!hayErrores) {
       for (int i = 0; i < 5; i++) {
@@ -142,7 +155,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
         }
       }
     }
-    
+
     return !hayErrores;
   }
 
@@ -151,7 +164,8 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Por favor rectifique los errores de validación antes de guardar'),
+            content: Text(
+                'Por favor rectifique los errores de validación antes de guardar'),
             backgroundColor: AppTheme.errorColor,
           ),
         );
@@ -160,11 +174,109 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
     }
 
     try {
-      // Aquí se guardarían las evaluaciones en la base de datos
+      final asignaturaProvider =
+          Provider.of<AsignaturaProvider>(context, listen: false);
+      final anioProvider =
+          Provider.of<AnioLectivoProvider>(context, listen: false);
+
+      if (asignaturaProvider.selectedAsignatura == null ||
+          anioProvider.selectedAnio == null) {
+        String msg = asignaturaProvider.selectedAsignatura == null
+            ? 'asignatura'
+            : 'año lectivo';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Debe seleccionar un $msg'),
+                backgroundColor: AppTheme.errorColor),
+          );
+        }
+        return;
+      }
+
+      // Obtener el corte actual basado en el tab seleccionado
+      final numeroCorte = _tabController.index + 1;
+      final CorteEvaluativoRepository corteRepo = CorteEvaluativoRepository();
+      final cortes = await corteRepo.obtenerActivos();
+      final corteActual = cortes.firstWhere(
+        (corte) =>
+            corte.numero == numeroCorte &&
+            corte.anioLectivoId == anioProvider.selectedAnio!.id,
+        orElse: () => throw Exception('Corte no encontrado'),
+      );
+
+      final db = await DatabaseHelper().database;
+
+      await db.transaction((txn) async {
+        // 1. Eliminar indicadores y criterios existentes para este corte
+        // Obtener IDs de indicadores para borrar sus criterios
+        final indicadoresIds = (await txn.query(
+          'indicadores_evaluacion',
+          columns: ['id'],
+          where: 'corteId = ?',
+          whereArgs: [corteActual.id],
+        ))
+            .map((m) => m['id'] as int)
+            .toList();
+
+        if (indicadoresIds.isNotEmpty) {
+          final placeholders = indicadoresIds.map((_) => '?').join(',');
+          await txn.delete(
+            'criterios_evaluacion',
+            where: 'indicadorId IN ($placeholders)',
+            whereArgs: indicadoresIds,
+          );
+          await txn.delete(
+            'indicadores_evaluacion',
+            where: 'corteId = ?',
+            whereArgs: [corteActual.id],
+          );
+        }
+
+        // 2. Guardar nuevos indicadores y sus criterios
+        for (int i = 0; i < 5; i++) {
+          final indicadorMap = {
+            'anio_lectivo_id': anioProvider.selectedAnio!.id!,
+            'corteId': corteActual.id!,
+            'numero': i + 1,
+            'descripcion': _indicadorDescripcionControllers[i].text,
+            'puntosTotales': 20,
+            'activo': 1,
+          };
+
+          final indicadorId =
+              await txn.insert('indicadores_evaluacion', indicadorMap);
+
+          // Guardar los 3 criterios para este indicador
+          for (int j = 0; j < 3; j++) {
+            final criterioIndex = (i * 3) + j;
+            final criterioMap = {
+              'anio_lectivo_id': anioProvider.selectedAnio!.id!,
+              'indicadorId': indicadorId,
+              'numero': j + 1,
+              'descripcion':
+                  _criterioDescripcionControllers[criterioIndex].text,
+              'puntosMaximos': asignaturaProvider
+                      .selectedAsignatura!.cualitativo
+                  ? 0
+                  : int.tryParse(_criterioControllers[criterioIndex].text) ?? 0,
+              'puntosObtenidos': 0,
+              'activo': 1,
+            };
+            await txn.insert('criterios_evaluacion', criterioMap);
+          }
+        }
+      });
+
+      // Recargar datos en los providers
+      await _indicadorProvider.cargarIndicadores();
+      await _criterioProvider.cargarCriterios();
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Configuración de evaluaciones guardada correctamente'),
+            content:
+                Text('Configuración de evaluaciones guardada correctamente'),
             backgroundColor: AppTheme.primaryColor,
           ),
         );
@@ -213,11 +325,13 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
                   decoration: BoxDecoration(
                     color: AppTheme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                    border: Border.all(
+                        color: AppTheme.primaryColor.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
+                      const Icon(Icons.calendar_today,
+                          color: AppTheme.primaryColor),
                       const SizedBox(width: 12),
                       Text(
                         'Año Lectivo: ${anioProvider.selectedAnio?.anio ?? "No seleccionado"}',
@@ -239,15 +353,21 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
                       flex: 2,
                       child: _buildDropdown(
                         label: 'Asignatura',
-                        value: asignaturaProvider.selectedAsignatura?.nombre ?? 'Seleccionar',
-                        items: asignaturaProvider.asignaturas.map((asignatura) => asignatura.nombre).toList(),
+                        value: asignaturaProvider.selectedAsignatura?.nombre ??
+                            'Seleccionar',
+                        items: asignaturaProvider.asignaturas
+                            .map((asignatura) => asignatura.nombre)
+                            .toList(),
                         onChanged: (value) {
                           if (value != null) {
-                            final selectedAsignatura = asignaturaProvider.asignaturas.firstWhere(
+                            final selectedAsignatura =
+                                asignaturaProvider.asignaturas.firstWhere(
                               (asignatura) => asignatura.nombre == value,
-                              orElse: () => asignaturaProvider.asignaturas.first,
+                              orElse: () =>
+                                  asignaturaProvider.asignaturas.first,
                             );
-                            asignaturaProvider.seleccionarAsignatura(selectedAsignatura);
+                            asignaturaProvider
+                                .seleccionarAsignatura(selectedAsignatura);
                             // Recargar datos cuando cambie la asignatura
                             setState(() {});
                           }
@@ -259,7 +379,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
                     // Pestañas de cortes (derecha)
                     Expanded(
                       flex: 3,
-                      child: Container(
+                      child: SizedBox(
                         height: 48, // Altura aproximada del dropdown
                         child: TabBar(
                           controller: _tabController,
@@ -295,211 +415,239 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
     );
   }
 
-  Widget _buildFilters(AsignaturaProvider asignaturaProvider, AnioLectivoProvider anioProvider) => Container(
-      padding: const EdgeInsets.all(16),
-      color: AppTheme.backgroundColor,
-      child: Column(
-        children: [
-          // Año Lectivo (mostrar pero no editable en evaluaciones, usa el seleccionado globalmente)
-          Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
-                const SizedBox(width: 12),
-                Text(
-                  'Año Lectivo: ${anioProvider.selectedAnio?.anio ?? "No seleccionado"}',
-                  style: const TextStyle(
-                    color: AppTheme.primaryColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+  Widget _buildFilters(AsignaturaProvider asignaturaProvider,
+          AnioLectivoProvider anioProvider) =>
+      Container(
+        padding: const EdgeInsets.all(16),
+        color: AppTheme.backgroundColor,
+        child: Column(
+          children: [
+            // Año Lectivo (mostrar pero no editable en evaluaciones, usa el seleccionado globalmente)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border:
+                    Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today,
+                      color: AppTheme.primaryColor),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Año Lectivo: ${anioProvider.selectedAnio?.anio ?? "No seleccionado"}',
+                    style: const TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          // Asignatura
-          _buildDropdown(
-            label: 'Asignatura',
-            value: asignaturaProvider.selectedAsignatura?.nombre ?? 'Seleccionar',
-            items: asignaturaProvider.asignaturas.map((asignatura) => asignatura.nombre).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                final selectedAsignatura = asignaturaProvider.asignaturas.firstWhere(
-                  (asignatura) => asignatura.nombre == value,
-                  orElse: () => asignaturaProvider.asignaturas.first,
-                );
-                asignaturaProvider.seleccionarAsignatura(selectedAsignatura);
-                // Recargar datos cuando cambie la asignatura
-                setState(() {});
-              }
-            },
-          ),
-        ],
-      ),
-    );
+            // Asignatura
+            _buildDropdown(
+              label: 'Asignatura',
+              value: asignaturaProvider.selectedAsignatura?.nombre ??
+                  'Seleccionar',
+              items: asignaturaProvider.asignaturas
+                  .map((asignatura) => asignatura.nombre)
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  final selectedAsignatura =
+                      asignaturaProvider.asignaturas.firstWhere(
+                    (asignatura) => asignatura.nombre == value,
+                    orElse: () => asignaturaProvider.asignaturas.first,
+                  );
+                  asignaturaProvider.seleccionarAsignatura(selectedAsignatura);
+                  // Recargar datos cuando cambie la asignatura
+                  setState(() {});
+                }
+              },
+            ),
+          ],
+        ),
+      );
 
   Widget _buildDropdown({
     required String label,
     required String value,
     required List<String> items,
     required Function(String?) onChanged,
-  }) => DropdownButtonFormField<String>(
-      initialValue: value != 'Seleccionar' ? value : null,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppTheme.cardColor),
+  }) =>
+      DropdownButtonFormField<String>(
+        initialValue: value != 'Seleccionar' ? value : null,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppTheme.cardColor),
+          ),
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      ),
-      items: items.map((item) => DropdownMenuItem(
-          value: item,
-          child: Text(item),
-        )).toList(),
-      onChanged: onChanged,
-    );
+        items: items
+            .map((item) => DropdownMenuItem(
+                  value: item,
+                  child: Text(item),
+                ))
+            .toList(),
+        onChanged: onChanged,
+      );
 
-  Widget _buildCorteContent(int numeroCorte) => Consumer<CorteEvaluativoProvider>(
-      builder: (context, corteProvider, _) {
-        if (corteProvider.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
-            ),
+  Widget _buildCorteContent(int numeroCorte) =>
+      Consumer<CorteEvaluativoProvider>(
+        builder: (context, corteProvider, _) {
+          if (corteProvider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+              ),
+            );
+          }
+
+          final asignaturaProvider = Provider.of<AsignaturaProvider>(context);
+          final esCualitativa =
+              asignaturaProvider.selectedAsignatura?.cualitativo ?? false;
+
+          // Tanto asignaturas cualitativas como cuantitativas pueden definir descripciones
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: 5, // 5 indicadores por corte
+            itemBuilder: (context, indicadorIndex) =>
+                _buildIndicadorExpansionTile(
+                    indicadorIndex + 1, numeroCorte, esCualitativa),
           );
-        }
+        },
+      );
 
-        final asignaturaProvider = Provider.of<AsignaturaProvider>(context);
-        final esCualitativa = asignaturaProvider.selectedAsignatura?.cualitativo ?? false;
-
-        // Tanto asignaturas cualitativas como cuantitativas pueden definir descripciones
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: 5, // 5 indicadores por corte
-          itemBuilder: (context, indicadorIndex) => _buildIndicadorExpansionTile(indicadorIndex + 1, numeroCorte, esCualitativa),
-        );
-      },
-    );
-
-  Widget _buildIndicadorExpansionTile(int numeroIndicador, int numeroCorte, bool esCualitativa) => ExpansionTile(
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'Indicador $numeroIndicador',
-            style: TextStyle(
-              color: _indicadorErrores[numeroIndicador - 1] ? AppTheme.errorColor : AppTheme.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          // Solo mostrar puntos para asignaturas cuantitativas
-          if (!esCualitativa)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _indicadorErrores[numeroIndicador - 1] 
-                    ? AppTheme.errorColor.withOpacity(0.2)
-                    : AppTheme.primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _indicadorErrores[numeroIndicador - 1] 
-                      ? AppTheme.errorColor 
-                      : AppTheme.primaryColor.withOpacity(0.3),
-                ),
+  Widget _buildIndicadorExpansionTile(
+          int numeroIndicador, int numeroCorte, bool esCualitativa) =>
+      ExpansionTile(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Indicador $numeroIndicador',
+              style: TextStyle(
+                color: _indicadorErrores[numeroIndicador - 1]
+                    ? AppTheme.errorColor
+                    : AppTheme.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_indicadorErrores[numeroIndicador - 1])
-                    const Icon(
-                      Icons.warning,
-                      size: 14,
-                      color: AppTheme.errorColor,
-                    ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '20 puntos',
-                    style: TextStyle(
-                      color: _indicadorErrores[numeroIndicador - 1] ? AppTheme.errorColor : AppTheme.primaryColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
+            ),
+            // Solo mostrar puntos para asignaturas cuantitativas
+            if (!esCualitativa)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _indicadorErrores[numeroIndicador - 1]
+                      ? AppTheme.errorColor.withOpacity(0.2)
+                      : AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _indicadorErrores[numeroIndicador - 1]
+                        ? AppTheme.errorColor
+                        : AppTheme.primaryColor.withOpacity(0.3),
                   ),
-                ],
-              ),
-            )
-          else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                'Cualitativo',
-                style: TextStyle(
-                  color: AppTheme.primaryColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_indicadorErrores[numeroIndicador - 1])
+                      const Icon(
+                        Icons.warning,
+                        size: 14,
+                        color: AppTheme.errorColor,
+                      ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '20 puntos',
+                      style: TextStyle(
+                        color: _indicadorErrores[numeroIndicador - 1]
+                            ? AppTheme.errorColor
+                            : AppTheme.primaryColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Cualitativo',
+                  style: TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
-        ],
-      ),
-      children: [
-        const SizedBox(height: 8),
-        
-        // Campo de descripción del indicador
-        CustomTextField(
-          label: 'Descripción del Indicador',
-          hint: 'Describe qué se evalúa en este indicador',
-          controller: _indicadorDescripcionControllers[numeroIndicador - 1],
-          maxLines: 2,
+          ],
         ),
-        const SizedBox(height: 16),
-        
-        // Criterios del indicador
-        const Text(
-          'Criterios de Evaluación',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        
-        // Lista de criterios
-        ...List.generate(3, (criterioIndex) => 
-          _buildCriterioInput(criterioIndex + 1, numeroIndicador, esCualitativa)
-        ),
-        
-        const SizedBox(height: 12),
-        
-        // Total del indicador (solo para cuantitativas)
-        if (!esCualitativa) _buildIndicadorTotal(numeroIndicador),
-        const SizedBox(height: 8),
-      ],
-    );
+        children: [
+          const SizedBox(height: 8),
 
-  Widget _buildCriterioInput(int numeroCriterio, int numeroIndicador, bool esCualitativa) {
+          // Campo de descripción del indicador
+          CustomTextField(
+            label: 'Descripción del Indicador',
+            hint: 'Describe qué se evalúa en este indicador',
+            controller: _indicadorDescripcionControllers[numeroIndicador - 1],
+            maxLines: 2,
+          ),
+          const SizedBox(height: 16),
+
+          // Criterios del indicador
+          const Text(
+            'Criterios de Evaluación',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Lista de criterios
+          ...List.generate(
+              3,
+              (criterioIndex) => _buildCriterioInput(
+                  criterioIndex + 1, numeroIndicador, esCualitativa)),
+
+          const SizedBox(height: 12),
+
+          // Total del indicador (solo para cuantitativas)
+          if (!esCualitativa) _buildIndicadorTotal(numeroIndicador),
+          const SizedBox(height: 8),
+        ],
+      );
+
+  Widget _buildCriterioInput(
+      int numeroCriterio, int numeroIndicador, bool esCualitativa) {
     // Índice del controlador para este criterio específico
-    final int controllerIndex = (numeroIndicador - 1) * 3 + (numeroCriterio - 1);
-    final TextEditingController puntosController = _criterioControllers[controllerIndex];
-    final TextEditingController descripcionController = _criterioDescripcionControllers[controllerIndex];
+    final int controllerIndex =
+        (numeroIndicador - 1) * 3 + (numeroCriterio - 1);
+    final TextEditingController puntosController =
+        _criterioControllers[controllerIndex];
+    final TextEditingController descripcionController =
+        _criterioDescripcionControllers[controllerIndex];
     final bool tieneError = _criterioErrores[controllerIndex];
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
       padding: const EdgeInsets.all(12),
@@ -507,7 +655,9 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
         color: AppTheme.surfaceColor.withOpacity(0.5),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: tieneError ? AppTheme.errorColor : AppTheme.cardColor.withOpacity(0.5),
+          color: tieneError
+              ? AppTheme.errorColor
+              : AppTheme.cardColor.withOpacity(0.5),
           width: tieneError ? 2 : 1,
         ),
       ),
@@ -520,7 +670,8 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
               Text(
                 'Criterio $numeroCriterio',
                 style: TextStyle(
-                  color: tieneError ? AppTheme.errorColor : AppTheme.textPrimary,
+                  color:
+                      tieneError ? AppTheme.errorColor : AppTheme.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
@@ -536,7 +687,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
             ],
           ),
           const SizedBox(height: 8),
-          
+
           // Campo de descripción del criterio
           CustomTextField(
             label: 'Descripción del Criterio',
@@ -545,7 +696,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
             maxLines: 2,
           ),
           const SizedBox(height: 8),
-          
+
           // Campo de puntos (solo para asignaturas cuantitativas)
           if (!esCualitativa)
             Column(
@@ -560,7 +711,8 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
                         hint: '0-8',
                         keyboardType: TextInputType.number,
                         controller: puntosController,
-                        errorText: tieneError ? 'Máximo 8 puntos permitidos' : null,
+                        errorText:
+                            tieneError ? 'Máximo 8 puntos permitidos' : null,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -592,7 +744,8 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
               decoration: BoxDecoration(
                 color: AppTheme.primaryColor.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
+                border:
+                    Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
               ),
               child: const Row(
                 children: [
@@ -620,12 +773,12 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
   Widget _buildIndicadorTotal(int numeroIndicador) {
     final int total = _indicadorTotales[numeroIndicador - 1];
     final bool tieneError = _indicadorErrores[numeroIndicador - 1];
-    
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: tieneError 
+        color: tieneError
             ? AppTheme.errorColor.withOpacity(0.1)
             : AppTheme.primaryColor.withOpacity(0.05),
         borderRadius: BorderRadius.circular(8),
@@ -647,7 +800,8 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
               Text(
                 'Total del Indicador',
                 style: TextStyle(
-                  color: tieneError ? AppTheme.errorColor : AppTheme.textPrimary,
+                  color:
+                      tieneError ? AppTheme.errorColor : AppTheme.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),

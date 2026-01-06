@@ -36,10 +36,11 @@ class NotasRepository {
         END as calificacion,
         1 as activo
       FROM estudiantes e
-      CROSS JOIN cortes_evaluativos ce
+      INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
+      INNER JOIN cortes_evaluativos ce ON ce.anio_lectivo_id = ea.anio_lectivo_id
       LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
       LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
-      WHERE e.activo = 1 AND ce.activo = 1
+      WHERE e.activo = 1 AND ce.activo = 1 AND ea.activo = 1
       GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
       ORDER BY e.estudiante, ce.numero
     ''');
@@ -83,7 +84,7 @@ class NotasRepository {
         1 as activo
       FROM estudiantes e
       INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
-      CROSS JOIN cortes_evaluativos ce
+      INNER JOIN cortes_evaluativos ce ON ce.anio_lectivo_id = ea.anio_lectivo_id
       LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
       LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
       WHERE e.activo = 1
@@ -131,11 +132,13 @@ class NotasRepository {
         END as calificacion,
         1 as activo
       FROM estudiantes e
-      CROSS JOIN cortes_evaluativos ce
+      INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
+      INNER JOIN cortes_evaluativos ce ON ce.anio_lectivo_id = ea.anio_lectivo_id
       LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
       LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
       WHERE e.activo = 1
         AND ce.activo = 1
+        AND ea.activo = 1
         AND (LOWER(e.estudiante) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)
       GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
       ORDER BY e.estudiante, ce.numero
@@ -182,7 +185,7 @@ class NotasRepository {
         1 as activo
       FROM estudiantes e
       INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
-      CROSS JOIN cortes_evaluativos ce
+      INNER JOIN cortes_evaluativos ce ON ce.anio_lectivo_id = ea.anio_lectivo_id
       LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
       LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
       WHERE e.activo = 1
@@ -196,7 +199,15 @@ class NotasRepository {
         AND (LOWER(e.estudiante) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)
       GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
       ORDER BY e.estudiante, ce.numero
-    ''', [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId, searchTerm, searchTerm]);
+    ''', [
+      anioLectivoId,
+      colegioId,
+      asignaturaId,
+      gradoId,
+      seccionId,
+      searchTerm,
+      searchTerm
+    ]);
     return List.generate(maps.length, (i) => Nota.fromMap(maps[i]));
   }
 
@@ -226,10 +237,17 @@ class NotasRepository {
         AND ea.seccion_id = ?
     ''';
 
-    final List<dynamic> studentParams = [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId];
+    final List<dynamic> studentParams = [
+      anioLectivoId,
+      colegioId,
+      asignaturaId,
+      gradoId,
+      seccionId
+    ];
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
-      studentQuery += ' AND (LOWER(e.estudiante) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)';
+      studentQuery +=
+          ' AND (LOWER(e.estudiante) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)';
       final searchTerm = '%${searchQuery.toLowerCase()}%';
       studentParams.add(searchTerm);
       studentParams.add(searchTerm);
@@ -266,16 +284,19 @@ class NotasRepository {
           ORDER BY cri.numero
         ''', [indicadorId]);
 
-        final List<CriterioDetalle> criterios = criterioMaps.map((map) => CriterioDetalle(
-          id: map['id'] as int,
-          numero: map['numero'] as int,
-          descripcion: map['descripcion'] as String,
-          puntosMaximos: map['puntosMaximos'] as int,
-          puntosObtenidos: map['puntosObtenidos'] as int,
-        )).toList();
+        final List<CriterioDetalle> criterios = criterioMaps
+            .map((map) => CriterioDetalle(
+                  id: map['id'] as int,
+                  numero: map['numero'] as int,
+                  descripcion: map['descripcion'] as String,
+                  puntosMaximos: map['puntosMaximos'] as int,
+                  puntosObtenidos: map['puntosObtenidos'] as int,
+                ))
+            .toList();
 
         // Calculate indicator total
-        final totalPuntos = criterios.fold<int>(0, (sum, criterio) => sum + criterio.puntosObtenidos);
+        final totalPuntos = criterios.fold<int>(
+            0, (sum, criterio) => sum + criterio.puntosObtenidos);
         final totalMaximo = indicadorMap['puntosTotales'] as int;
 
         indicadores.add(IndicadorDetalle(
@@ -289,15 +310,20 @@ class NotasRepository {
       }
 
       // Calculate total for the cut
-      final totalPuntos = indicadores.fold<int>(0, (sum, indicador) => sum + indicador.totalPuntos);
-      final totalMaximo = indicadores.fold<int>(0, (sum, indicador) => sum + indicador.totalMaximo);
+      final totalPuntos = indicadores.fold<int>(
+          0, (sum, indicador) => sum + indicador.totalPuntos);
+      final totalMaximo = indicadores.fold<int>(
+          0, (sum, indicador) => sum + indicador.totalMaximo);
 
-      final porcentaje = totalMaximo > 0 ? (totalPuntos / totalMaximo) * 100 : 0.0;
+      final porcentaje =
+          totalMaximo > 0 ? (totalPuntos / totalMaximo) * 100 : 0.0;
       final calificacion = _calcularCalificacion(porcentaje);
 
       // Get cut name
-      final corteMaps = await db.rawQuery('SELECT nombre FROM cortes_evaluativos WHERE id = ?', [corteId]);
-      final corteNombre = corteMaps.isNotEmpty ? corteMaps.first['nombre'] as String : 'Corte';
+      final corteMaps = await db.rawQuery(
+          'SELECT nombre FROM cortes_evaluativos WHERE id = ?', [corteId]);
+      final corteNombre =
+          corteMaps.isNotEmpty ? corteMaps.first['nombre'] as String : 'Corte';
 
       notasDetalladas.add(NotaDetalle(
         estudianteId: estudianteId,
@@ -318,7 +344,8 @@ class NotasRepository {
   }
 
   /// Obtiene los cortes evaluativos para un año lectivo
-  Future<List<CorteEvaluativo>> obtenerCortesPorAnioLectivo(int anioLectivoId) async {
+  Future<List<CorteEvaluativo>> obtenerCortesPorAnioLectivo(
+      int anioLectivoId) async {
     final db = await _dbHelper.database;
 
     // First check if cortes exist for this academic year
@@ -330,15 +357,40 @@ class NotasRepository {
     ''', [anioLectivoId]);
 
     if (existingMaps.isNotEmpty) {
-      return List.generate(existingMaps.length, (i) => CorteEvaluativo.fromMap(existingMaps[i]));
+      return List.generate(
+          existingMaps.length, (i) => CorteEvaluativo.fromMap(existingMaps[i]));
     }
 
     // If no cortes exist, create default cortes for this academic year
     final cortesDefault = [
-      {'anio_lectivo_id': anioLectivoId, 'numero': 1, 'nombre': '1er Corte', 'puntosTotales': 100, 'activo': 1},
-      {'anio_lectivo_id': anioLectivoId, 'numero': 2, 'nombre': '2do Corte', 'puntosTotales': 100, 'activo': 1},
-      {'anio_lectivo_id': anioLectivoId, 'numero': 3, 'nombre': '3er Corte', 'puntosTotales': 100, 'activo': 1},
-      {'anio_lectivo_id': anioLectivoId, 'numero': 4, 'nombre': '4to Corte', 'puntosTotales': 100, 'activo': 1},
+      {
+        'anio_lectivo_id': anioLectivoId,
+        'numero': 1,
+        'nombre': '1er Corte',
+        'puntosTotales': 100,
+        'activo': 1
+      },
+      {
+        'anio_lectivo_id': anioLectivoId,
+        'numero': 2,
+        'nombre': '2do Corte',
+        'puntosTotales': 100,
+        'activo': 1
+      },
+      {
+        'anio_lectivo_id': anioLectivoId,
+        'numero': 3,
+        'nombre': '3er Corte',
+        'puntosTotales': 100,
+        'activo': 1
+      },
+      {
+        'anio_lectivo_id': anioLectivoId,
+        'numero': 4,
+        'nombre': '4to Corte',
+        'puntosTotales': 100,
+        'activo': 1
+      },
     ];
 
     for (final corte in cortesDefault) {

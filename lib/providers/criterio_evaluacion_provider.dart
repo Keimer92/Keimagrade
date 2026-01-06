@@ -75,4 +75,12 @@ class CriterioEvaluacionProvider extends ChangeNotifier {
       print('Error al eliminar criterio: $e');
     }
   }
+
+  Future<void> eliminarCriteriosPorIndicador(int indicadorId) async {
+    try {
+      await _repository.eliminarPorIndicador(indicadorId);
+    } catch (e) {
+      print('Error al eliminar criterios por indicador: $e');
+    }
+  }
 }

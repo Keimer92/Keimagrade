@@ -7,6 +7,11 @@ import '../screens/estudiantes/estudiantes_screen.dart';
 import '../screens/notas/notas_screen.dart';
 
 class AparienciaProvider extends ChangeNotifier {
+
+  AparienciaProvider() {
+    _currentScreens = _defaultScreens.map(Map<String, dynamic>.from).toList();
+    _loadConfiguration();
+  }
   static const String _prefsKey = 'screen_order';
 
   // Lista por defecto de las pantallas
@@ -65,15 +70,10 @@ class AparienciaProvider extends ChangeNotifier {
 
   List<Map<String, dynamic>> _currentScreens = [];
 
-  AparienciaProvider() {
-    _currentScreens = _defaultScreens.map((s) => Map<String, dynamic>.from(s)).toList();
-    _loadConfiguration();
-  }
-
   List<Map<String, dynamic>> get screens {
     // Asegurar que siempre tengamos datos disponibles
     if (_currentScreens.isEmpty) {
-      return _defaultScreens.map((s) => Map<String, dynamic>.from(s)).toList();
+      return _defaultScreens.map(Map<String, dynamic>.from).toList();
     }
     return _currentScreens;
   }
@@ -143,7 +143,7 @@ class AparienciaProvider extends ChangeNotifier {
   }
 
   void resetToDefault() {
-    _currentScreens = _defaultScreens.map((s) => Map<String, dynamic>.from(s)).toList();
+    _currentScreens = _defaultScreens.map(Map<String, dynamic>.from).toList();
     notifyListeners();
   }
 

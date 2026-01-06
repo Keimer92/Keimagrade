@@ -12,8 +12,7 @@ class AparienciaTab extends StatefulWidget {
 
 class _AparienciaTabState extends State<AparienciaTab> {
   @override
-  Widget build(BuildContext context) {
-    return Consumer<AparienciaProvider>(
+  Widget build(BuildContext context) => Consumer<AparienciaProvider>(
       builder: (context, aparienciaProvider, _) {
         final screens = aparienciaProvider.screens;
 
@@ -40,11 +39,11 @@ class _AparienciaTabState extends State<AparienciaTab> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
+                        const Row(
                           children: [
                             Icon(Icons.palette, color: AppTheme.primaryColor),
-                            const SizedBox(width: 8),
-                            const Text(
+                            SizedBox(width: 8),
+                            Text(
                               'Personalizar Apariencia',
                               style: TextStyle(
                                 color: AppTheme.textPrimary,
@@ -156,7 +155,7 @@ class _AparienciaTabState extends State<AparienciaTab> {
                             Switch(
                               value: isEnabled,
                               onChanged: (value) => aparienciaProvider.toggleScreen(index, value),
-                              activeColor: AppTheme.primaryColor,
+                              activeThumbColor: AppTheme.primaryColor,
                               inactiveTrackColor: AppTheme.cardColor,
                             ),
                             // Handle para arrastrar
@@ -165,7 +164,7 @@ class _AparienciaTabState extends State<AparienciaTab> {
                                 index: index,
                                 child: Container(
                                   padding: const EdgeInsets.all(8),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.drag_handle,
                                     color: AppTheme.textTertiary,
                                   ),
@@ -184,7 +183,7 @@ class _AparienciaTabState extends State<AparienciaTab> {
               Container(
                 padding: const EdgeInsets.all(16),
                 color: AppTheme.surfaceColor,
-                child: Center(
+                child: const Center(
                   child: Text(
                     'Arrastra las pantallas para reordenarlas y presiona "Aplicar Cambios" para guardar.',
                     style: TextStyle(
@@ -200,5 +199,4 @@ class _AparienciaTabState extends State<AparienciaTab> {
         );
       },
     );
-  }
 }

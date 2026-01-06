@@ -28,7 +28,7 @@ class CorteEvaluativoProvider extends ChangeNotifier {
     }
   }
 
-  void seleccionarCorte(CorteEvaluativo corte) {
+  void seleccionarCorte(CorteEvaluativo? corte) {
     _selectedCorte = corte;
     notifyListeners();
   }
