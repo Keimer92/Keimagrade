@@ -743,7 +743,7 @@ class _NotasScreenState extends State<NotasScreen> {
                     border: TableBorder.all(color: AppTheme.textTertiary.withOpacity(0.3)),
                     columnWidths: _buildEditableTableColumnWidths(),
                     children: [
-                      _buildEditableTableHeader(),
+                      ..._buildEditableTableHeaders(),
                       ...estudiantesFiltrados.map((estudiante) => _buildEditableTableRow(estudiante, asignaturaProvider.selectedAsignatura?.cualitativo ?? false)),
                     ],
                   ),
@@ -1030,11 +1030,13 @@ class _NotasScreenState extends State<NotasScreen> {
     return columnWidths;
   }
 
-  TableRow _buildEditableTableHeader() {
-    final headerCells = <TableCell>[];
+  List<TableRow> _buildEditableTableHeaders() {
+    // Two rows: first row for indicator names, second row for criteria
+    final firstRowCells = <TableCell>[];
+    final secondRowCells = <TableCell>[];
 
     // Student header
-    headerCells.add(const TableCell(
+    firstRowCells.add(const TableCell(
       child: Padding(
         padding: EdgeInsets.all(8),
         child: Text(
@@ -1044,18 +1046,17 @@ class _NotasScreenState extends State<NotasScreen> {
         ),
       ),
     ));
+    secondRowCells.add(const TableCell(child: SizedBox.shrink()));
 
-    // Indicator headers (I, II, III, IV, V)
+    // Indicator headers (each indicator takes 4 columns)
     for (int indicadorIndex = 1; indicadorIndex <= 5; indicadorIndex++) {
-      final romanNumeral = _getRomanNumeral(indicadorIndex);
-
-      // 3 criteria headers per indicator
-      for (int criterioIndex = 1; criterioIndex <= 3; criterioIndex++) {
-        headerCells.add(TableCell(
+      // First row: repeat indicator name 4 times (C1, C2, C3, Total columns)
+      for (int i = 0; i < 4; i++) {
+        firstRowCells.add(TableCell(
           child: Padding(
             padding: const EdgeInsets.all(4),
             child: Text(
-              '$romanNumeral.$criterioIndex',
+              'Indicador $indicadorIndex',
               style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 11),
               textAlign: TextAlign.center,
             ),
@@ -1063,12 +1064,42 @@ class _NotasScreenState extends State<NotasScreen> {
         ));
       }
 
-      // Total header for indicator
-      headerCells.add(TableCell(
+      // Second row: criteria names (C1, C2, C3, Total)
+      secondRowCells.add(TableCell(
         child: Padding(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(2),
           child: Text(
-            '$romanNumeral Total',
+            'C1',
+            style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 10),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ));
+      secondRowCells.add(TableCell(
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Text(
+            'C2',
+            style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 10),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ));
+      secondRowCells.add(TableCell(
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Text(
+            'C3',
+            style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 10),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ));
+      secondRowCells.add(TableCell(
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Text(
+            'Total',
             style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 10),
             textAlign: TextAlign.center,
           ),
@@ -1077,7 +1108,7 @@ class _NotasScreenState extends State<NotasScreen> {
     }
 
     // Total points header
-    headerCells.add(const TableCell(
+    firstRowCells.add(const TableCell(
       child: Padding(
         padding: EdgeInsets.all(8),
         child: Text(
@@ -1087,11 +1118,18 @@ class _NotasScreenState extends State<NotasScreen> {
         ),
       ),
     ));
+    secondRowCells.add(const TableCell(child: SizedBox.shrink()));
 
-    return TableRow(
-      decoration: BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.1)),
-      children: headerCells,
-    );
+    return [
+      TableRow(
+        decoration: BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.1)),
+        children: firstRowCells,
+      ),
+      TableRow(
+        decoration: BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.05)),
+        children: secondRowCells,
+      ),
+    ];
   }
 
   TableRow _buildEditableTableRow(Estudiante estudiante, bool esCualitativa) {
