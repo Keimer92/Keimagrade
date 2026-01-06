@@ -36,10 +36,20 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
       await context.read<GradoProvider>().cargarGrados();
       await context.read<SeccionProvider>().cargarSecciones();
 
-      // Si hay un año seleccionado (por defecto), iniciar la cascada automáticamente
-      final anioProvider = context.read<AnioLectivoProvider>();
-      if (anioProvider.selectedAnio != null) {
-        await _seleccionarEnCascadaDesdeAnio(anioProvider.selectedAnio!.id!);
+      // Forzar selección de año por defecto e iniciar cascada total
+      if (mounted) {
+        final anioProvider = context.read<AnioLectivoProvider>();
+        final anioPorDefecto = anioProvider.anios.firstWhere(
+          (a) => a.porDefecto == 1,
+          orElse: () => anioProvider.anios.isNotEmpty
+              ? anioProvider.anios.first
+              : anioProvider.anios.first,
+        );
+
+        if (anioProvider.anios.isNotEmpty) {
+          anioProvider.seleccionarAnio(anioPorDefecto);
+          await _seleccionarEnCascadaDesdeAnio(anioPorDefecto.id!);
+        }
       }
     });
   }
@@ -132,7 +142,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     if (estudiante != null) {
       try {
         final estudianteProvider = context.read<EstudianteProvider>();
-        final asignaciones = await estudianteProvider.obtenerAsignacionesEstudiante(estudiante.id!);
+        final asignaciones = await estudianteProvider
+            .obtenerAsignacionesEstudiante(estudiante.id!);
 
         if (asignaciones.isNotEmpty) {
           // Use the first assignment as reference (assuming one main assignment per student)
@@ -143,7 +154,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
           selectedSeccionId = primeraAsignacion['seccion_id'];
 
           // Get all asignaturas for this student
-          selectedAsignaturasIds = asignaciones.map((a) => a['asignatura_id'] as int).toSet();
+          selectedAsignaturasIds =
+              asignaciones.map((a) => a['asignatura_id'] as int).toSet();
         }
       } catch (e) {
         print('Error loading student assignments: $e');
@@ -858,14 +870,20 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     final colegiosIds =
         await estudianteProvider.obtenerColegiosDisponibles(anioLectivoId);
     if (colegiosIds.isNotEmpty) {
-      final colegioDisponible = colegioProvider.colegios.firstWhere(
-        (c) => colegiosIds.contains(c.id),
-        orElse: () => colegioProvider.colegios.first,
-      );
-      colegioProvider.seleccionarColegio(colegioDisponible);
+      final currentSelectedId = colegioProvider.selectedColegio?.id;
+      if (currentSelectedId == null ||
+          !colegiosIds.contains(currentSelectedId)) {
+        final lista = colegioProvider.colegios
+            .where((c) => colegiosIds.contains(c.id))
+            .toList();
+        lista.sort((a, b) => a.nombre.compareTo(b.nombre));
+
+        final colegioDisponible = lista.first;
+        colegioProvider.seleccionarColegio(colegioDisponible);
+      }
 
       await _seleccionarEnCascadaDesdeColegio(
-          anioLectivoId, colegioDisponible.id!);
+          anioLectivoId, colegioProvider.selectedColegio!.id!);
     }
   }
 
@@ -881,14 +899,20 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     final asignaturasIds = await estudianteProvider
         .obtenerAsignaturasDisponibles(anioLectivoId, colegioId);
     if (asignaturasIds.isNotEmpty) {
-      final asignaturaDisponible = asignaturaProvider.asignaturas.firstWhere(
-        (a) => asignaturasIds.contains(a.id),
-        orElse: () => asignaturaProvider.asignaturas.first,
-      );
-      asignaturaProvider.seleccionarAsignatura(asignaturaDisponible);
+      final currentSelectedId = asignaturaProvider.selectedAsignatura?.id;
+      if (currentSelectedId == null ||
+          !asignaturasIds.contains(currentSelectedId)) {
+        final lista = asignaturaProvider.asignaturas
+            .where((a) => asignaturasIds.contains(a.id))
+            .toList();
+        lista.sort((a, b) => a.nombre.compareTo(b.nombre));
+
+        final asignaturaDisponible = lista.first;
+        asignaturaProvider.seleccionarAsignatura(asignaturaDisponible);
+      }
 
       await _seleccionarEnCascadaDesdeAsignatura(
-          anioLectivoId, colegioId, asignaturaDisponible.id!);
+          anioLectivoId, colegioId, asignaturaProvider.selectedAsignatura!.id!);
     }
   }
 
@@ -903,14 +927,19 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     final gradosIds = await estudianteProvider.obtenerGradosDisponibles(
         anioLectivoId, colegioId, asignaturaId);
     if (gradosIds.isNotEmpty) {
-      final gradoDisponible = gradoProvider.grados.firstWhere(
-        (g) => gradosIds.contains(g.id),
-        orElse: () => gradoProvider.grados.first,
-      );
-      gradoProvider.seleccionarGrado(gradoDisponible);
+      final currentSelectedId = gradoProvider.selectedGrado?.id;
+      if (currentSelectedId == null || !gradosIds.contains(currentSelectedId)) {
+        final lista = gradoProvider.grados
+            .where((g) => gradosIds.contains(g.id))
+            .toList();
+        lista.sort((a, b) => a.numero.compareTo(b.numero));
 
-      await _seleccionarEnCascadaDesdeGrado(
-          anioLectivoId, colegioId, asignaturaId, gradoDisponible.id!);
+        final gradoDisponible = lista.first;
+        gradoProvider.seleccionarGrado(gradoDisponible);
+      }
+
+      await _seleccionarEnCascadaDesdeGrado(anioLectivoId, colegioId,
+          asignaturaId, gradoProvider.selectedGrado!.id!);
     }
   }
 
@@ -924,11 +953,17 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     final seccionesIds = await estudianteProvider.obtenerSeccionesDisponibles(
         anioLectivoId, colegioId, asignaturaId, gradoId);
     if (seccionesIds.isNotEmpty) {
-      final seccionDisponible = seccionProvider.secciones.firstWhere(
-        (s) => seccionesIds.contains(s.id),
-        orElse: () => seccionProvider.secciones.first,
-      );
-      seccionProvider.seleccionarSeccion(seccionDisponible);
+      final currentSelectedId = seccionProvider.selectedSeccion?.id;
+      if (currentSelectedId == null ||
+          !seccionesIds.contains(currentSelectedId)) {
+        final lista = seccionProvider.secciones
+            .where((s) => seccionesIds.contains(s.id))
+            .toList();
+        lista.sort((a, b) => a.letra.compareTo(b.letra));
+
+        final seccionDisponible = lista.first;
+        seccionProvider.seleccionarSeccion(seccionDisponible);
+      }
     }
 
     // Aplicar filtros finales
@@ -945,18 +980,19 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
         await estudianteProvider.obtenerAniosDisponiblesDesdeColegio(colegioId);
 
     if (aniosIds.isNotEmpty) {
-      // Seleccionar el año más reciente disponible
-      final anioDisponible = anioProvider.anios.firstWhere(
-        (a) => aniosIds.contains(a.id),
-        orElse: () => anioProvider.anios.firstWhere(
+      final currentSelectedId = anioProvider.selectedAnio?.id;
+      if (currentSelectedId == null || !aniosIds.contains(currentSelectedId)) {
+        // Seleccionar el año más reciente disponible
+        final anioDisponible = anioProvider.anios.firstWhere(
           (a) => aniosIds.contains(a.id),
           orElse: () => anioProvider.anios.first,
-        ),
-      );
-      anioProvider.seleccionarAnio(anioDisponible);
+        );
+        anioProvider.seleccionarAnio(anioDisponible);
+      }
 
       // Continuar la cascada desde colegio con el año seleccionado
-      await _seleccionarEnCascadaDesdeColegio(anioDisponible.id!, colegioId);
+      await _seleccionarEnCascadaDesdeColegio(
+          anioProvider.selectedAnio!.id!, colegioId);
     }
   }
 
@@ -983,18 +1019,22 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                           width: 150,
                           child: _buildDropdown(
                             label: 'Año Lectivo',
-                            value: anioProvider.selectedAnio?.nombre ?? 'Seleccionar',
-                            items:
-                                anioProvider.anios.map((anio) => anio.nombre).toList(),
+                            value: anioProvider.selectedAnio?.nombre ??
+                                'Seleccionar',
+                            items: anioProvider.anios
+                                .map((anio) => anio.nombre)
+                                .toList(),
                             onChanged: (value) async {
                               if (value != null) {
-                                final selectedAnio = anioProvider.anios.firstWhere(
+                                final selectedAnio =
+                                    anioProvider.anios.firstWhere(
                                   (anio) => anio.nombre == value,
                                   orElse: () => anioProvider.anios.first,
                                 );
                                 anioProvider.seleccionarAnio(selectedAnio);
                                 // Selección en cascada automática
-                                await _seleccionarEnCascadaDesdeAnio(selectedAnio.id!);
+                                await _seleccionarEnCascadaDesdeAnio(
+                                    selectedAnio.id!);
                               }
                             },
                           ),
@@ -1016,7 +1056,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                                   (colegio) => colegio.nombre == value,
                                   orElse: () => colegioProvider.colegios.first,
                                 );
-                                colegioProvider.seleccionarColegio(selectedColegio);
+                                colegioProvider
+                                    .seleccionarColegio(selectedColegio);
 
                                 // Si hay año lectivo seleccionado, hacer cascada desde colegio
                                 if (anioProvider.selectedAnio != null) {
@@ -1039,8 +1080,9 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                           width: 150,
                           child: _buildDropdown(
                             label: 'Asignatura',
-                            value: asignaturaProvider.selectedAsignatura?.nombre ??
-                                'Seleccionar',
+                            value:
+                                asignaturaProvider.selectedAsignatura?.nombre ??
+                                    'Seleccionar',
                             items: asignaturaProvider.asignaturas
                                 .map((a) => a.nombre)
                                 .toList(),
@@ -1051,9 +1093,11 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                                 final selected =
                                     asignaturaProvider.asignaturas.firstWhere(
                                   (a) => a.nombre == value,
-                                  orElse: () => asignaturaProvider.asignaturas.first,
+                                  orElse: () =>
+                                      asignaturaProvider.asignaturas.first,
                                 );
-                                asignaturaProvider.seleccionarAsignatura(selected);
+                                asignaturaProvider
+                                    .seleccionarAsignatura(selected);
                                 // Selección en cascada
                                 await _seleccionarEnCascadaDesdeAsignatura(
                                   anioProvider.selectedAnio!.id!,
@@ -1069,14 +1113,19 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                           width: 150,
                           child: _buildDropdown(
                             label: 'Grado',
-                            value: gradoProvider.selectedGrado?.nombre ?? 'Seleccionar',
-                            items: gradoProvider.grados.map((g) => g.nombre).toList(),
+                            value: gradoProvider.selectedGrado?.nombre ??
+                                'Seleccionar',
+                            items: gradoProvider.grados
+                                .map((g) => g.nombre)
+                                .toList(),
                             onChanged: (value) async {
                               if (value != null &&
                                   anioProvider.selectedAnio != null &&
                                   colegioProvider.selectedColegio != null &&
-                                  asignaturaProvider.selectedAsignatura != null) {
-                                final selected = gradoProvider.grados.firstWhere(
+                                  asignaturaProvider.selectedAsignatura !=
+                                      null) {
+                                final selected =
+                                    gradoProvider.grados.firstWhere(
                                   (g) => g.nombre == value,
                                   orElse: () => gradoProvider.grados.first,
                                 );
@@ -1097,13 +1146,15 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                           width: 100,
                           child: _buildDropdown(
                             label: 'Sección',
-                            value:
-                                seccionProvider.selectedSeccion?.letra ?? 'Seleccionar',
-                            items:
-                                seccionProvider.secciones.map((s) => s.letra).toList(),
+                            value: seccionProvider.selectedSeccion?.letra ??
+                                'Seleccionar',
+                            items: seccionProvider.secciones
+                                .map((s) => s.letra)
+                                .toList(),
                             onChanged: (value) {
                               if (value != null) {
-                                final selected = seccionProvider.secciones.firstWhere(
+                                final selected =
+                                    seccionProvider.secciones.firstWhere(
                                   (s) => s.letra == value,
                                   orElse: () => seccionProvider.secciones.first,
                                 );
@@ -1126,7 +1177,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                       icon: const Icon(Icons.person_add),
                       label: const Text('Agregar Estudiante'),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1135,7 +1187,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                       icon: const Icon(Icons.upload_file),
                       label: const Text('Importar Excel'),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                       ),
                     ),
                   ],
@@ -1172,8 +1225,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     required Function(String?) onChanged,
   }) =>
       DropdownButtonFormField<String>(
-        initialValue:
-            value != 'Seleccionar' && items.contains(value) ? value : null,
+        value: value != 'Seleccionar' && items.contains(value) ? value : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1181,17 +1233,19 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
-        items: items.map((item) => DropdownMenuItem(
-          value: item,
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 200),
-            child: Text(
-              item,
-              overflow: TextOverflow.ellipsis,
-              softWrap: false,
-            ),
-          ),
-        )).toList(),
+        items: items
+            .map((item) => DropdownMenuItem(
+                  value: item,
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 200),
+                    child: Text(
+                      item,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                  ),
+                ))
+            .toList(),
         onChanged: onChanged,
         isExpanded: true,
       );

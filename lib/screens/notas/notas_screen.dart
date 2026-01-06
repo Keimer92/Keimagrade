@@ -39,10 +39,20 @@ class _NotasScreenState extends State<NotasScreen> {
       await context.read<SeccionProvider>().cargarSecciones();
       await context.read<CorteEvaluativoProvider>().cargarCortes();
 
-      // Si hay un año seleccionado (por defecto), iniciar la cascada automáticamente
-      final anioProvider = context.read<AnioLectivoProvider>();
-      if (anioProvider.selectedAnio != null) {
-        await _seleccionarEnCascadaDesdeAnio(anioProvider.selectedAnio!.id!);
+      // Forzar selección de año por defecto e iniciar cascada total
+      if (mounted) {
+        final anioProvider = context.read<AnioLectivoProvider>();
+        final anioPorDefecto = anioProvider.anios.firstWhere(
+          (a) => a.porDefecto == 1,
+          orElse: () => anioProvider.anios.isNotEmpty
+              ? anioProvider.anios.first
+              : anioProvider.anios.first, // Fallback safe
+        );
+
+        if (anioProvider.anios.isNotEmpty) {
+          anioProvider.seleccionarAnio(anioPorDefecto);
+          await _seleccionarEnCascadaDesdeAnio(anioPorDefecto.id!);
+        }
       }
     });
   }
@@ -117,19 +127,43 @@ class _NotasScreenState extends State<NotasScreen> {
     final gradoProvider = context.read<GradoProvider>();
     final seccionProvider = context.read<SeccionProvider>();
 
-    // Obtener colegios disponibles y seleccionar el primero
+    // 1. Seleccionar automáticamente el primer Corte Evaluativo disponible
+    final cortesDisponibles =
+        await notasProvider.obtenerCortesDisponibles(anioLectivoId);
+    if (cortesDisponibles.isNotEmpty) {
+      final corteProvider = context.read<CorteEvaluativoProvider>();
+      final indProvider = context.read<IndicadorEvaluacionProvider>();
+
+      // Seleccionar el primer corte si no hay uno o el actual no es válido
+      if (corteProvider.selectedCorte == null ||
+          !cortesDisponibles
+              .any((c) => c.id == corteProvider.selectedCorte?.id)) {
+        final primerCorte = cortesDisponibles.first;
+        corteProvider.seleccionarCorte(primerCorte);
+        notasProvider.aplicarFiltroCorte(primerCorte.id);
+        await indProvider.cargarIndicadoresPorCorte(primerCorte.id!);
+      }
+    }
+
+    // 2. Obtener colegios disponibles y seleccionar el primero
     final colegiosIds =
         await notasProvider.obtenerColegiosDisponibles(anioLectivoId);
 
     if (colegiosIds.isNotEmpty) {
-      final colegioDisponible = colegioProvider.colegios.firstWhere(
-        (c) => colegiosIds.contains(c.id),
-        orElse: () => colegioProvider.colegios.first,
-      );
-      colegioProvider.seleccionarColegio(colegioDisponible);
+      final currentSelectedId = colegioProvider.selectedColegio?.id;
+      if (currentSelectedId == null ||
+          !colegiosIds.contains(currentSelectedId)) {
+        final listaColegios = colegioProvider.colegios
+            .where((c) => colegiosIds.contains(c.id))
+            .toList();
+        listaColegios.sort((a, b) => a.nombre.compareTo(b.nombre));
+
+        final colegioDisponible = listaColegios.first;
+        colegioProvider.seleccionarColegio(colegioDisponible);
+      }
 
       await _seleccionarEnCascadaDesdeColegio(
-          anioLectivoId, colegioDisponible.id!);
+          anioLectivoId, colegioProvider.selectedColegio!.id!);
     }
   }
 
@@ -146,14 +180,20 @@ class _NotasScreenState extends State<NotasScreen> {
         anioLectivoId, colegioId);
 
     if (asignaturasIds.isNotEmpty) {
-      final asignaturaDisponible = asignaturaProvider.asignaturas.firstWhere(
-        (a) => asignaturasIds.contains(a.id),
-        orElse: () => asignaturaProvider.asignaturas.first,
-      );
-      asignaturaProvider.seleccionarAsignatura(asignaturaDisponible);
+      final currentSelectedId = asignaturaProvider.selectedAsignatura?.id;
+      if (currentSelectedId == null ||
+          !asignaturasIds.contains(currentSelectedId)) {
+        final lista = asignaturaProvider.asignaturas
+            .where((a) => asignaturasIds.contains(a.id))
+            .toList();
+        lista.sort((a, b) => a.nombre.compareTo(b.nombre));
+
+        final asignaturaDisponible = lista.first;
+        asignaturaProvider.seleccionarAsignatura(asignaturaDisponible);
+      }
 
       await _seleccionarEnCascadaDesdeAsignatura(
-          anioLectivoId, colegioId, asignaturaDisponible.id!);
+          anioLectivoId, colegioId, asignaturaProvider.selectedAsignatura!.id!);
     }
   }
 
@@ -169,14 +209,19 @@ class _NotasScreenState extends State<NotasScreen> {
         anioLectivoId, colegioId, asignaturaId);
 
     if (gradosIds.isNotEmpty) {
-      final gradoDisponible = gradoProvider.grados.firstWhere(
-        (g) => gradosIds.contains(g.id),
-        orElse: () => gradoProvider.grados.first,
-      );
-      gradoProvider.seleccionarGrado(gradoDisponible);
+      final currentSelectedId = gradoProvider.selectedGrado?.id;
+      if (currentSelectedId == null || !gradosIds.contains(currentSelectedId)) {
+        final lista = gradoProvider.grados
+            .where((g) => gradosIds.contains(g.id))
+            .toList();
+        lista.sort((a, b) => a.numero.compareTo(b.numero));
 
-      await _seleccionarEnCascadaDesdeGrado(
-          anioLectivoId, colegioId, asignaturaId, gradoDisponible.id!);
+        final gradoDisponible = lista.first;
+        gradoProvider.seleccionarGrado(gradoDisponible);
+      }
+
+      await _seleccionarEnCascadaDesdeGrado(anioLectivoId, colegioId,
+          asignaturaId, gradoProvider.selectedGrado!.id!);
     }
   }
 
@@ -191,11 +236,17 @@ class _NotasScreenState extends State<NotasScreen> {
         anioLectivoId, colegioId, asignaturaId, gradoId);
 
     if (seccionesIds.isNotEmpty) {
-      final seccionDisponible = seccionProvider.secciones.firstWhere(
-        (s) => seccionesIds.contains(s.id),
-        orElse: () => seccionProvider.secciones.first,
-      );
-      seccionProvider.seleccionarSeccion(seccionDisponible);
+      final currentSelectedId = seccionProvider.selectedSeccion?.id;
+      if (currentSelectedId == null ||
+          !seccionesIds.contains(currentSelectedId)) {
+        final lista = seccionProvider.secciones
+            .where((s) => seccionesIds.contains(s.id))
+            .toList();
+        lista.sort((a, b) => a.letra.compareTo(b.letra));
+
+        final seccionDisponible = lista.first;
+        seccionProvider.seleccionarSeccion(seccionDisponible);
+      }
     }
 
     // Aplicar filtros finales
@@ -212,18 +263,19 @@ class _NotasScreenState extends State<NotasScreen> {
         await notasProvider.obtenerAniosDisponiblesDesdeColegio(colegioId);
 
     if (aniosIds.isNotEmpty) {
-      // Seleccionar el año más reciente disponible
-      final anioDisponible = anioProvider.anios.firstWhere(
-        (a) => aniosIds.contains(a.id),
-        orElse: () => anioProvider.anios.firstWhere(
+      final currentSelectedId = anioProvider.selectedAnio?.id;
+      if (currentSelectedId == null || !aniosIds.contains(currentSelectedId)) {
+        // Seleccionar el año más reciente disponible
+        final anioDisponible = anioProvider.anios.firstWhere(
           (a) => aniosIds.contains(a.id),
           orElse: () => anioProvider.anios.first,
-        ),
-      );
-      anioProvider.seleccionarAnio(anioDisponible);
+        );
+        anioProvider.seleccionarAnio(anioDisponible);
+      }
 
       // Continuar la cascada desde colegio con el año seleccionado
-      await _seleccionarEnCascadaDesdeColegio(anioDisponible.id!, colegioId);
+      await _seleccionarEnCascadaDesdeColegio(
+          anioProvider.selectedAnio!.id!, colegioId);
     }
   }
 
@@ -382,11 +434,7 @@ class _NotasScreenState extends State<NotasScreen> {
                           );
                           colegioProvider.seleccionarColegio(selectedColegio);
 
-                          // Reset Corte selection when changing colegio
-                          corteProvider.seleccionarCorte(null);
-                          context
-                              .read<NotasProvider>()
-                              .aplicarFiltroCorte(null);
+                          // No resetear Corte si sigue siendo válido (el año no cambió)
 
                           // Si hay año lectivo seleccionado, hacer cascada desde colegio
                           if (anioProvider.selectedAnio != null) {
@@ -425,11 +473,7 @@ class _NotasScreenState extends State<NotasScreen> {
                           );
                           asignaturaProvider.seleccionarAsignatura(selected);
 
-                          // Reset Corte selection when changing asignatura
-                          corteProvider.seleccionarCorte(null);
-                          context
-                              .read<NotasProvider>()
-                              .aplicarFiltroCorte(null);
+                          // No resetear Corte
 
                           // Selección en cascada
                           await _seleccionarEnCascadaDesdeAsignatura(
@@ -460,11 +504,7 @@ class _NotasScreenState extends State<NotasScreen> {
                           );
                           gradoProvider.seleccionarGrado(selected);
 
-                          // Reset Corte selection when changing grado
-                          corteProvider.seleccionarCorte(null);
-                          context
-                              .read<NotasProvider>()
-                              .aplicarFiltroCorte(null);
+                          // No resetear Corte
 
                           // Selección en cascada
                           await _seleccionarEnCascadaDesdeGrado(
@@ -543,8 +583,7 @@ class _NotasScreenState extends State<NotasScreen> {
     required Function(String?) onChanged,
   }) =>
       DropdownButtonFormField<String>(
-        initialValue:
-            value != 'Seleccionar' && items.contains(value) ? value : null,
+        value: value != 'Seleccionar' && items.contains(value) ? value : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
