@@ -21,9 +21,9 @@ class NotaDetalle {
         corteId: map['corteId'],
         corteNombre: map['corteNombre'],
         indicadores: _parseIndicadores(map['indicadores']),
-        totalPuntos: map['totalPuntos'],
-        totalMaximo: map['totalMaximo'],
-        porcentaje: map['porcentaje'],
+        totalPuntos: (map['totalPuntos'] as num).toDouble(),
+        totalMaximo: (map['totalMaximo'] as num).toDouble(),
+        porcentaje: (map['porcentaje'] as num).toDouble(),
         calificacion: map['calificacion'],
       );
 
@@ -34,8 +34,8 @@ class NotaDetalle {
   final int corteId;
   final String corteNombre;
   final List<IndicadorDetalle> indicadores;
-  final int totalPuntos;
-  final int totalMaximo;
+  final double totalPuntos;
+  final double totalMaximo;
   final double porcentaje;
   final String calificacion;
 
@@ -68,16 +68,16 @@ class IndicadorDetalle {
         numero: map['numero'],
         descripcion: map['descripcion'],
         criterios: _parseCriterios(map['criterios']),
-        totalPuntos: map['totalPuntos'],
-        totalMaximo: map['totalMaximo'],
+        totalPuntos: (map['totalPuntos'] as num).toDouble(),
+        totalMaximo: (map['totalMaximo'] as num).toDouble(),
       );
 
   final int id;
   final int numero;
   final String descripcion;
   final List<CriterioDetalle> criterios;
-  final int totalPuntos;
-  final int totalMaximo;
+  final double totalPuntos;
+  final double totalMaximo;
 
   static List<CriterioDetalle> _parseCriterios(dynamic criteriosData) {
     if (criteriosData is List) {
@@ -103,15 +103,15 @@ class CriterioDetalle {
         id: map['id'],
         numero: map['numero'],
         descripcion: map['descripcion'],
-        puntosMaximos: map['puntosMaximos'],
-        puntosObtenidos: map['puntosObtenidos'],
+        puntosMaximos: (map['puntosMaximos'] as num).toDouble(),
+        puntosObtenidos: (map['puntosObtenidos'] as num).toDouble(),
         valorCualitativo: map['valor_cualitativo'],
       );
 
   final int id;
   final int numero;
   final String descripcion;
-  final int puntosMaximos;
-  final int puntosObtenidos;
+  final double puntosMaximos;
+  final double puntosObtenidos;
   final String? valorCualitativo;
 }

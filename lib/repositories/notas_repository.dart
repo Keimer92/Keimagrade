@@ -296,16 +296,16 @@ class NotasRepository {
                   id: map['id'] as int,
                   numero: map['numero'] as int,
                   descripcion: map['descripcion'] as String,
-                  puntosMaximos: map['puntosMaximos'] as int,
-                  puntosObtenidos: map['puntosObtenidos'] as int,
+                  puntosMaximos: (map['puntosMaximos'] as num).toDouble(),
+                  puntosObtenidos: (map['puntosObtenidos'] as num).toDouble(),
                   valorCualitativo: map['valor_cualitativo'] as String?,
                 ))
             .toList();
 
         // Calculate indicator total
-        final totalPuntos = criterios.fold<int>(
-            0, (sum, criterio) => sum + criterio.puntosObtenidos);
-        final totalMaximo = indicadorMap['puntosTotales'] as int;
+        final totalPuntos = criterios.fold<double>(
+            0.0, (sum, criterio) => sum + criterio.puntosObtenidos);
+        final totalMaximo = (indicadorMap['puntosTotales'] as num).toDouble();
 
         indicadores.add(IndicadorDetalle(
           id: indicadorId,
@@ -318,10 +318,10 @@ class NotasRepository {
       }
 
       // Calculate total for the cut
-      final totalPuntos = indicadores.fold<int>(
-          0, (sum, indicador) => sum + indicador.totalPuntos);
-      final totalMaximo = indicadores.fold<int>(
-          0, (sum, indicador) => sum + indicador.totalMaximo);
+      final totalPuntos = indicadores.fold<double>(
+          0.0, (sum, indicador) => sum + indicador.totalPuntos);
+      final totalMaximo = indicadores.fold<double>(
+          0.0, (sum, indicador) => sum + indicador.totalMaximo);
 
       final porcentaje =
           totalMaximo > 0 ? (totalPuntos / totalMaximo) * 100 : 0.0;

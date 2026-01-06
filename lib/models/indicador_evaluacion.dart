@@ -19,7 +19,7 @@ class IndicadorEvaluacion {
         corteId: map['corteId'] as int,
         numero: map['numero'] as int,
         descripcion: map['descripcion'] as String,
-        puntosTotales: map['puntosTotales'] as int,
+        puntosTotales: (map['puntosTotales'] as num).toDouble(),
         activo: map['activo'] == 1,
       );
   final int? id;
@@ -27,7 +27,7 @@ class IndicadorEvaluacion {
   final int corteId;
   final int numero;
   final String descripcion;
-  final int puntosTotales;
+  final double puntosTotales;
   final bool activo;
   final List<CriterioEvaluacion> criterios;
 
@@ -46,7 +46,7 @@ class IndicadorEvaluacion {
     int? corteId,
     int? numero,
     String? descripcion,
-    int? puntosTotales,
+    double? puntosTotales,
     bool? activo,
     List<CriterioEvaluacion>? criterios,
   }) =>

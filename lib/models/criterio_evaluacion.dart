@@ -18,8 +18,8 @@ class CriterioEvaluacion {
         indicadorId: map['indicadorId'] as int,
         numero: map['numero'] as int,
         descripcion: map['descripcion'] as String,
-        puntosMaximos: map['puntosMaximos'] as int,
-        puntosObtenidos: map['puntosObtenidos'] as int,
+        puntosMaximos: (map['puntosMaximos'] as num).toDouble(),
+        puntosObtenidos: (map['puntosObtenidos'] as num).toDouble(),
         activo: map['activo'] == 1,
         valorCualitativo: map['valor_cualitativo'] as String?,
       );
@@ -28,8 +28,8 @@ class CriterioEvaluacion {
   final int indicadorId;
   final int numero;
   final String descripcion;
-  final int puntosMaximos;
-  final int puntosObtenidos;
+  final double puntosMaximos;
+  final double puntosObtenidos;
   final bool activo;
   final String? valorCualitativo;
 
@@ -50,8 +50,8 @@ class CriterioEvaluacion {
     int? indicadorId,
     int? numero,
     String? descripcion,
-    int? puntosMaximos,
-    int? puntosObtenidos,
+    double? puntosMaximos,
+    double? puntosObtenidos,
     bool? activo,
     String? valorCualitativo,
   }) =>
