@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class CustomCard extends StatelessWidget {
-
   const CustomCard({
     Key? key,
     required this.child,
@@ -17,24 +16,23 @@ class CustomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-      onTap: onTap,
-      child: Card(
-        color: backgroundColor ?? AppTheme.surfaceColor,
-        elevation: 6,
-        shadowColor: AppTheme.shadowColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Card(
+          color: backgroundColor ?? Theme.of(context).cardColor,
+          elevation: 6,
+          shadowColor: Colors.black.withOpacity(0.3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: padding,
+            child: child,
+          ),
         ),
-        child: Padding(
-          padding: padding,
-          child: child,
-        ),
-      ),
-    );
+      );
 }
 
 class CustomButton extends StatelessWidget {
-
   const CustomButton({
     Key? key,
     required this.label,
@@ -52,19 +50,26 @@ class CustomButton extends StatelessWidget {
   final double? width;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
+  Widget build(BuildContext context) {
+    final effectiveBgColor = backgroundColor ?? Theme.of(context).primaryColor;
+    final effectiveTextColor = textColor ??
+        (Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF121212)
+            : Colors.white);
+
+    return SizedBox(
       width: width,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? AppTheme.primaryColor,
-          foregroundColor: textColor ?? AppTheme.backgroundColor,
+          backgroundColor: effectiveBgColor,
+          foregroundColor: effectiveTextColor,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 4,
-          shadowColor: (backgroundColor ?? AppTheme.primaryColor).withOpacity(0.3),
+          shadowColor: effectiveBgColor.withOpacity(0.3),
         ),
         child: isLoading
             ? SizedBox(
@@ -72,7 +77,7 @@ class CustomButton extends StatelessWidget {
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(textColor ?? AppTheme.backgroundColor),
+                  valueColor: AlwaysStoppedAnimation<Color>(effectiveTextColor),
                 ),
               )
             : Text(
@@ -84,10 +89,10 @@ class CustomButton extends StatelessWidget {
               ),
       ),
     );
+  }
 }
 
 class CustomTextField extends StatelessWidget {
-
   const CustomTextField({
     Key? key,
     required this.label,
@@ -114,24 +119,23 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      validator: validator,
-      onChanged: onChanged,
-      style: const TextStyle(color: AppTheme.textPrimary),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: prefixIcon,
-        suffixIcon: suffixIcon,
-        errorText: errorText,
-      ),
-    );
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        validator: validator,
+        onChanged: onChanged,
+        style: TextStyle(color: AppTheme.getTextPrimary(context)),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          prefixIcon: prefixIcon,
+          suffixIcon: suffixIcon,
+          errorText: errorText,
+        ),
+      );
 }
 
 class SectionHeader extends StatelessWidget {
-
   const SectionHeader({
     Key? key,
     required this.title,
@@ -142,30 +146,30 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: AppTheme.getTextPrimary(context),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          if (onAddPressed != null)
-            IconButton(
-              onPressed: onAddPressed,
-              icon: const Icon(Icons.add_circle, color: AppTheme.primaryColor),
-            ),
-        ],
-      ),
-    );
+            if (onAddPressed != null)
+              IconButton(
+                onPressed: onAddPressed,
+                icon: Icon(Icons.add_circle,
+                    color: Theme.of(context).primaryColor),
+              ),
+          ],
+        ),
+      );
 }
 
 class EmptyState extends StatelessWidget {
-
   const EmptyState({
     Key? key,
     required this.message,
@@ -176,24 +180,24 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 64,
-            color: AppTheme.textTertiary,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 16,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 64,
+              color: AppTheme.getTextTertiary(context),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: TextStyle(
+                color: AppTheme.getTextSecondary(context),
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
 }

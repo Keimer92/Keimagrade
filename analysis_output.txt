@@ -1,0 +1,268 @@
+Analyzing Keimagrade...                                         
+
+warning • 'prefer_equal_for_default_values' was removed in Dart '3.0.0' • analysis_options.yaml:19:7 • removed_lint
+warning • 'prefer_if_null_to_conditional_expressions' is not a recognized lint rule • analysis_options.yaml:29:7 • undefined_lint
+warning • 'prefer_if_on_single_line_is_else' is not a recognized lint rule • analysis_options.yaml:30:7 • undefined_lint
+warning • 'prefer_is_null_check_on_cascade' is not a recognized lint rule • analysis_options.yaml:38:7 • undefined_lint
+warning • 'prefer_null_coalescing_operators' is not a recognized lint rule • analysis_options.yaml:41:7 • undefined_lint
+warning • 'prefer_relative_import_paths' is not a recognized lint rule • analysis_options.yaml:42:7 • undefined_lint
+warning • 'sized_box_shrink' is not a recognized lint rule • analysis_options.yaml:47:7 • undefined_lint
+warning • 'unnecessary_null_on_extension_on_nullable_type' is not a recognized lint rule • analysis_options.yaml:67:7 • undefined_lint
+warning • 'unsafe_html' was removed in Dart '3.7.0' • analysis_options.yaml:77:7 • removed_lint
+warning • 'use_getters_to_define_fields' is not a recognized lint rule • analysis_options.yaml:81:7 • undefined_lint
+warning • 'use_if_null_to_convert_nullability' is not a recognized lint rule • analysis_options.yaml:82:7 • undefined_lint
+warning • 'use_to_close_resource' is not a recognized lint rule • analysis_options.yaml:92:7 • undefined_lint
+   info • Don't invoke 'print' in production code • lib/database/database_helper.dart:464:9 • avoid_print
+   info • Unnecessary use of a block function body • lib/main.dart:40:45 • prefer_expression_function_bodies
+   info • Don't invoke 'print' in production code • lib/providers/anio_lectivo_provider.dart:41:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/anio_lectivo_provider.dart:57:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/anio_lectivo_provider.dart:75:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/anio_lectivo_provider.dart:83:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/anio_lectivo_provider.dart:86:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/anio_lectivo_provider.dart:102:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/anio_lectivo_provider.dart:118:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/anio_lectivo_provider.dart:131:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/anio_lectivo_provider.dart:150:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/anio_lectivo_provider.dart:171:7 • avoid_print
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion • lib/providers/apariencia_provider.dart:146:56 • deprecated_member_use
+   info • Don't invoke 'print' in production code • lib/providers/asignatura_provider.dart:31:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/asignatura_provider.dart:57:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/asignatura_provider.dart:71:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/asignatura_provider.dart:80:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/asignatura_provider.dart:89:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/colegio_provider.dart:31:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/colegio_provider.dart:62:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/colegio_provider.dart:76:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/colegio_provider.dart:85:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/colegio_provider.dart:94:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/corte_evaluativo_provider.dart:21:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/corte_evaluativo_provider.dart:38:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/corte_evaluativo_provider.dart:59:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/corte_evaluativo_provider.dart:68:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/corte_evaluativo_provider.dart:77:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/criterio_evaluacion_provider.dart:24:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/criterio_evaluacion_provider.dart:40:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/criterio_evaluacion_provider.dart:57:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/criterio_evaluacion_provider.dart:66:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/criterio_evaluacion_provider.dart:75:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/criterio_evaluacion_provider.dart:83:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/estudiante_provider.dart:103:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/estudiante_provider.dart:183:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/estudiante_provider.dart:192:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/estudiante_provider.dart:201:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/estudiante_provider.dart:232:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/grado_provider.dart:31:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/grado_provider.dart:54:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/grado_provider.dart:71:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/grado_provider.dart:76:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/grado_provider.dart:84:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/grado_provider.dart:94:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/grado_provider.dart:103:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/indicador_evaluacion_provider.dart:25:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/indicador_evaluacion_provider.dart:44:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/indicador_evaluacion_provider.dart:65:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/indicador_evaluacion_provider.dart:74:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/indicador_evaluacion_provider.dart:83:7 • avoid_print
+warning • The value of the field '_notas' isn't used • lib/providers/notas_provider.dart:10:20 • unused_field
+   info • Don't invoke 'print' in production code • lib/providers/notas_provider.dart:105:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/notas_provider.dart:189:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/notas_provider.dart:283:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/seccion_provider.dart:31:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/seccion_provider.dart:52:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/seccion_provider.dart:66:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/seccion_provider.dart:75:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/providers/seccion_provider.dart:84:7 • avoid_print
+   info • Unnecessary use of a 'double' literal • lib/repositories/notas_repository.dart:307:13 • prefer_int_literals
+   info • Unnecessary use of a 'double' literal • lib/repositories/notas_repository.dart:322:11 • prefer_int_literals
+   info • Unnecessary use of a 'double' literal • lib/repositories/notas_repository.dart:324:11 • prefer_int_literals
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/ajustes/apariencia_tab.dart:90:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/ajustes/apariencia_tab.dart:165:60 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/screens/ajustes/apariencia_tab.dart:169:23 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance • lib/screens/ajustes/apariencia_tab.dart:170:32 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance • lib/screens/ajustes/apariencia_tab.dart:172:34 • prefer_const_constructors
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/ajustes/apariencia_tab.dart:183:50 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/ajustes/apariencia_tab.dart:187:59 • use_build_context_synchronously
+   info • Unnecessary use of a block function body • lib/screens/ajustes/apariencia_tab.dart:204:63 • prefer_expression_function_bodies
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/ajustes/apariencia_tab.dart:261:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/ajustes/apariencia_tab.dart:264:53 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion • lib/screens/ajustes/apariencia_tab.dart:318:56 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion • lib/screens/ajustes/apariencia_tab.dart:318:71 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/ajustes/apariencia_tab.dart:333:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/ajustes/debugging_tab.dart:70:44 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/screens/ajustes/debugging_tab.dart:125:15 • use_build_context_synchronously
+   info • Don't invoke 'print' in production code • lib/screens/ajustes/debugging_tab.dart:127:9 • avoid_print
+   info • Don't use 'BuildContext's across async gaps • lib/screens/ajustes/debugging_tab.dart:131:15 • use_build_context_synchronously
+   info • Don't invoke 'print' in production code • lib/screens/ajustes/debugging_tab.dart:133:9 • avoid_print
+   info • Don't use 'BuildContext's across async gaps • lib/screens/ajustes/debugging_tab.dart:137:15 • use_build_context_synchronously
+   info • Don't invoke 'print' in production code • lib/screens/ajustes/debugging_tab.dart:139:9 • avoid_print
+   info • Don't use 'BuildContext's across async gaps • lib/screens/ajustes/debugging_tab.dart:143:15 • use_build_context_synchronously
+   info • Don't invoke 'print' in production code • lib/screens/ajustes/debugging_tab.dart:145:9 • avoid_print
+   info • Don't use 'BuildContext's across async gaps • lib/screens/ajustes/debugging_tab.dart:149:15 • use_build_context_synchronously
+   info • Don't invoke 'print' in production code • lib/screens/ajustes/debugging_tab.dart:151:9 • avoid_print
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/ajustes/debugging_tab.dart:156:22 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/ajustes/debugging_tab.dart:164:22 • unawaited_futures
+   info • Don't use 'BuildContext's across async gaps • lib/screens/ajustes/debugging_tab.dart:198:15 • use_build_context_synchronously
+   info • Don't invoke 'print' in production code • lib/screens/ajustes/debugging_tab.dart:200:9 • avoid_print
+   info • Don't use 'BuildContext's across async gaps • lib/screens/ajustes/debugging_tab.dart:204:15 • use_build_context_synchronously
+   info • Don't invoke 'print' in production code • lib/screens/ajustes/debugging_tab.dart:206:9 • avoid_print
+   info • Don't use 'BuildContext's across async gaps • lib/screens/ajustes/debugging_tab.dart:210:15 • use_build_context_synchronously
+   info • Don't invoke 'print' in production code • lib/screens/ajustes/debugging_tab.dart:212:9 • avoid_print
+   info • Don't use 'BuildContext's across async gaps • lib/screens/ajustes/debugging_tab.dart:216:15 • use_build_context_synchronously
+   info • Don't invoke 'print' in production code • lib/screens/ajustes/debugging_tab.dart:218:9 • avoid_print
+   info • Don't use 'BuildContext's across async gaps • lib/screens/ajustes/debugging_tab.dart:222:15 • use_build_context_synchronously
+   info • Don't invoke 'print' in production code • lib/screens/ajustes/debugging_tab.dart:224:9 • avoid_print
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/ajustes/debugging_tab.dart:229:22 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/ajustes/debugging_tab.dart:237:22 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/ajustes/debugging_tab.dart:270:22 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/ajustes/debugging_tab.dart:278:22 • unawaited_futures
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:33:13 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:34:13 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:35:13 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:36:13 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:37:13 • use_build_context_synchronously
+   info • The type of the right operand ('int') isn't a subtype or a supertype of the left operand ('bool') • lib/screens/estudiantes/estudiantes_screen.dart:43:31 • unrelated_type_equality_checks
+   info • Don't invoke 'print' in production code • lib/screens/estudiantes/estudiantes_screen.dart:105:9 • avoid_print
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/estudiantes/estudiantes_screen.dart:115:5 • unawaited_futures
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:116:7 • use_build_context_synchronously
+  error • Methods can't be invoked in constant expressions • lib/screens/estudiantes/estudiantes_screen.dart:138:28 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/screens/estudiantes/estudiantes_screen.dart:154:28 • const_eval_method_invocation
+   info • 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre • lib/screens/estudiantes/estudiantes_screen.dart:164:25 • deprecated_member_use
+   info • 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre • lib/screens/estudiantes/estudiantes_screen.dart:165:25 • deprecated_member_use
+   info • 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre • lib/screens/estudiantes/estudiantes_screen.dart:175:25 • deprecated_member_use
+   info • 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre • lib/screens/estudiantes/estudiantes_screen.dart:176:25 • deprecated_member_use
+  error • Methods can't be invoked in constant expressions • lib/screens/estudiantes/estudiantes_screen.dart:192:28 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/screens/estudiantes/estudiantes_screen.dart:253:28 • const_eval_method_invocation
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/estudiantes/estudiantes_screen.dart:262:32 • deprecated_member_use
+  error • Methods can't be invoked in constant expressions • lib/screens/estudiantes/estudiantes_screen.dart:347:28 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/screens/estudiantes/estudiantes_screen.dart:377:41 • const_eval_method_invocation
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:447:33 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:449:40 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:468:32 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:489:28 • use_build_context_synchronously
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/estudiantes/estudiantes_screen.dart:499:5 • unawaited_futures
+   info • Use 'const' with the constructor to improve performance • lib/screens/estudiantes/estudiantes_screen.dart:504:18 • prefer_const_constructors
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/estudiantes/estudiantes_screen.dart:671:5 • unawaited_futures
+   info • Use 'const' with the constructor to improve performance • lib/screens/estudiantes/estudiantes_screen.dart:676:18 • prefer_const_constructors
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:692:21 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:695:7 • use_build_context_synchronously
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/estudiantes/estudiantes_screen.dart:695:43 • unawaited_futures
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:696:7 • use_build_context_synchronously
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/estudiantes/estudiantes_screen.dart:696:39 • unawaited_futures
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:697:7 • use_build_context_synchronously
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/estudiantes/estudiantes_screen.dart:697:42 • unawaited_futures
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:698:7 • use_build_context_synchronously
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/estudiantes/estudiantes_screen.dart:698:37 • unawaited_futures
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:699:7 • use_build_context_synchronously
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/estudiantes/estudiantes_screen.dart:699:39 • unawaited_futures
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:704:21 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/estudiantes/estudiantes_screen.dart:705:28 • use_build_context_synchronously
+  error • Methods can't be invoked in constant expressions • lib/screens/estudiantes/estudiantes_screen.dart:738:43 • const_eval_method_invocation
+warning • The value of the local variable 'asignaturaProvider' isn't used • lib/screens/estudiantes/estudiantes_screen.dart:806:11 • unused_local_variable
+warning • The value of the local variable 'gradoProvider' isn't used • lib/screens/estudiantes/estudiantes_screen.dart:807:11 • unused_local_variable
+warning • The value of the local variable 'seccionProvider' isn't used • lib/screens/estudiantes/estudiantes_screen.dart:808:11 • unused_local_variable
+warning • The value of the local variable 'gradoProvider' isn't used • lib/screens/estudiantes/estudiantes_screen.dart:836:11 • unused_local_variable
+warning • The value of the local variable 'seccionProvider' isn't used • lib/screens/estudiantes/estudiantes_screen.dart:837:11 • unused_local_variable
+warning • The value of the local variable 'seccionProvider' isn't used • lib/screens/estudiantes/estudiantes_screen.dart:865:11 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/estudiantes/estudiantes_screen.dart:1286:60 • deprecated_member_use
+warning • The declaration '_InfoRow' isn't referenced • lib/screens/estudiantes/estudiantes_screen.dart:1382:7 • unused_element
+   info • Don't use 'BuildContext's across async gaps • lib/screens/evaluaciones/evaluaciones_screen.dart:58:39 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:326:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:329:54 • deprecated_member_use
+warning • The declaration '_buildFilters' isn't referenced • lib/screens/evaluaciones/evaluaciones_screen.dart:418:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:430:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:433:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:553:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:554:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:559:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:589:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:655:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:660:36 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:745:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:748:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:782:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/evaluaciones/evaluaciones_screen.dart:783:37 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/screens/globales/anio_lectivo_tab.dart:21:7 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/globales/anio_lectivo_tab.dart:139:49 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/globales/anio_lectivo_tab.dart:218:64 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/globales/anio_lectivo_tab.dart:226:64 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/globales/asignatura_tab.dart:21:7 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/globales/asignatura_tab.dart:146:49 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/screens/globales/colegio_tab.dart:21:7 • use_build_context_synchronously
+  error • Methods can't be invoked in constant expressions • lib/screens/globales/colegio_tab.dart:85:39 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/screens/globales/colegio_tab.dart:127:57 • const_eval_method_invocation
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/globales/colegio_tab.dart:171:58 • deprecated_member_use
+  error • Methods can't be invoked in constant expressions • lib/screens/globales/colegio_tab.dart:205:40 • const_eval_method_invocation
+   info • Don't use 'BuildContext's across async gaps • lib/screens/globales/grado_tab.dart:21:7 • use_build_context_synchronously
+  error • Methods can't be invoked in constant expressions • lib/screens/globales/grado_tab.dart:64:39 • const_eval_method_invocation
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/globales/grado_tab.dart:88:40 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/globales/grado_tab.dart:91:63 • use_build_context_synchronously
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/globales/grado_tab.dart:98:47 • unawaited_futures
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/globales/grado_tab.dart:102:31 • use_build_context_synchronously
+  error • Methods can't be invoked in constant expressions • lib/screens/globales/grado_tab.dart:118:57 • const_eval_method_invocation
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/globales/grado_tab.dart:168:58 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/globales/grado_tab.dart:178:67 • deprecated_member_use
+  error • Methods can't be invoked in constant expressions • lib/screens/globales/grado_tab.dart:185:40 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/screens/globales/grado_tab.dart:206:36 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/screens/globales/grado_tab.dart:218:44 • const_eval_method_invocation
+   info • Don't use 'BuildContext's across async gaps • lib/screens/globales/seccion_tab.dart:21:7 • use_build_context_synchronously
+  error • Methods can't be invoked in constant expressions • lib/screens/globales/seccion_tab.dart:56:39 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/screens/globales/seccion_tab.dart:94:57 • const_eval_method_invocation
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/globales/seccion_tab.dart:144:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/globales/seccion_tab.dart:154:60 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/screens/notas/notas_screen.dart:38:13 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/notas/notas_screen.dart:39:13 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/notas/notas_screen.dart:40:13 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/notas/notas_screen.dart:41:13 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/notas/notas_screen.dart:42:13 • use_build_context_synchronously
+   info • The type of the right operand ('int') isn't a subtype or a supertype of the left operand ('bool') • lib/screens/notas/notas_screen.dart:48:33 • unrelated_type_equality_checks
+   info • The variable 'node' should be final • lib/screens/notas/notas_screen.dart:62:14 • prefer_final_in_for_each
+   info • The variable 'controller' should be final • lib/screens/notas/notas_screen.dart:65:14 • prefer_final_in_for_each
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/notas/notas_screen.dart:202:23 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/notas/notas_screen.dart:354:32 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/notas/notas_screen.dart:387:36 • unawaited_futures
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/notas/notas_screen.dart:566:9 • deprecated_member_use
+  error • Methods can't be invoked in constant expressions • lib/screens/notas/notas_screen.dart:589:25 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/screens/notas/notas_screen.dart:601:44 • const_eval_method_invocation
+   info • Use 'const' with the constructor to improve performance • lib/screens/notas/notas_screen.dart:720:20 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance • lib/screens/notas/notas_screen.dart:721:24 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance • lib/screens/notas/notas_screen.dart:726:20 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance • lib/screens/notas/notas_screen.dart:727:24 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/notas/notas_screen.dart:746:63 • deprecated_member_use
+   info • Statements in a for should be enclosed in a block • lib/screens/notas/notas_screen.dart:798:9 • curly_braces_in_flow_control_structures
+  error • Methods can't be invoked in constant expressions • lib/screens/notas/notas_screen.dart:815:28 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/screens/notas/notas_screen.dart:855:30 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/screens/notas/notas_screen.dart:865:28 • const_eval_method_invocation
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/notas/notas_screen.dart:871:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/notas/notas_screen.dart:875:53 • deprecated_member_use
+  error • Methods can't be invoked in constant expressions • lib/screens/notas/notas_screen.dart:898:26 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/screens/notas/notas_screen.dart:902:42 • const_eval_method_invocation
+   info • Statements in an if should be enclosed in a block • lib/screens/notas/notas_screen.dart:989:33 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/screens/notas/notas_screen.dart:991:33 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/screens/notas/notas_screen.dart:993:33 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/screens/notas/notas_screen.dart:994:53 • curly_braces_in_flow_control_structures
+  error • Methods can't be invoked in constant expressions • lib/screens/notas/notas_screen.dart:1032:30 • const_eval_method_invocation
+   info • Unnecessary use of a 'double' literal • lib/screens/notas/notas_screen.dart:1039:26 • prefer_int_literals
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/notas/notas_screen.dart:1047:57 • deprecated_member_use
+  error • Methods can't be invoked in constant expressions • lib/screens/notas/notas_screen.dart:1052:26 • const_eval_method_invocation
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/notas/notas_screen.dart:1123:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/notas/notas_screen.dart:1126:27 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/notas/notas_screen.dart:1128:32 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/notas/notas_screen.dart:1130:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/notas/notas_screen.dart:1132:32 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/notas/notas_screen.dart:1134:23 • deprecated_member_use
+   info • Unnecessary use of a 'double' literal • lib/screens/notas/notas_screen.dart:1177:20 • prefer_int_literals
+   info • Unnecessary use of a 'double' literal • lib/screens/notas/notas_screen.dart:1178:20 • prefer_int_literals
+   info • Unnecessary use of a 'double' literal • lib/screens/notas/notas_screen.dart:1179:19 • prefer_int_literals
+   info • Unnecessary use of a 'double' literal • lib/screens/notas/notas_screen.dart:1186:28 • prefer_int_literals
+   info • Unnecessary use of a 'double' literal • lib/screens/notas/notas_screen.dart:1194:40 • prefer_int_literals
+   info • 'background' is deprecated and shouldn't be used. Use surface instead. This feature was deprecated after v3.18.0-0.1.pre • lib/theme/app_theme.dart:63:9 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/theme/app_theme.dart:80:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/theme/app_theme.dart:92:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/theme/app_theme.dart:116:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/theme/app_theme.dart:142:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/custom_widgets.dart:23:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/custom_widgets.dart:72:41 • deprecated_member_use
+   info • Dependencies not sorted alphabetically • pubspec.yaml:13:3 • sort_pub_dependencies
+   info • Dependencies not sorted alphabetically • pubspec.yaml:27:3 • sort_pub_dependencies
+
+264 issues found. (ran in 3.5s)

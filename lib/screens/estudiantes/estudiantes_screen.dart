@@ -116,11 +116,11 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          backgroundColor: AppTheme.surfaceColor,
+          backgroundColor: Theme.of(context).cardColor,
           title: Text(
             estudiante == null ? 'Agregar Estudiante' : 'Editar Estudiante',
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
+            style: TextStyle(
+              color: AppTheme.getTextPrimary(context),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -130,12 +130,12 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Student basic info
-                const Text(
+                Text(
                   'Información del Estudiante',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.getTextPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -146,12 +146,12 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 ),
                 const SizedBox(height: 12),
                 // Sex selection
-                const Text(
+                Text(
                   'Sexo',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.getTextPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -165,7 +165,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                         onChanged: (value) =>
                             setState(() => selectedSexo = value),
                         dense: true,
-                        activeColor: AppTheme.primaryColor,
+                        activeColor: Theme.of(context).primaryColor,
                       ),
                     ),
                     Expanded(
@@ -176,7 +176,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                         onChanged: (value) =>
                             setState(() => selectedSexo = value),
                         dense: true,
-                        activeColor: AppTheme.primaryColor,
+                        activeColor: Theme.of(context).primaryColor,
                       ),
                     ),
                   ],
@@ -184,12 +184,12 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 const SizedBox(height: 20),
 
                 // Academic assignment info
-                const Text(
+                Text(
                   'Asignación Académica',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.getTextPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -245,12 +245,12 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 const SizedBox(height: 12),
 
                 // Subjects (multi-select with all pre-selected)
-                const Text(
+                Text(
                   'Asignaturas',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.getTextPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -258,7 +258,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                   builder: (context, provider, _) => Container(
                     decoration: BoxDecoration(
                       border: Border.all(
-                          color: AppTheme.textTertiary.withOpacity(0.3)),
+                          color: AppTheme.getTextTertiary(context)
+                              .withOpacity(0.3)),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
@@ -279,7 +280,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                                   });
                                 },
                                 dense: true,
-                                activeColor: AppTheme.primaryColor,
+                                activeColor: Theme.of(context).primaryColor,
                               ))
                           .toList(),
                     ),
@@ -338,12 +339,12 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 const SizedBox(height: 20),
 
                 // Optional fields (less relevant)
-                const Text(
+                Text(
                   'Información Adicional (Opcional)',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.getTextSecondary(context),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -371,9 +372,9 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
+              child: Text(
                 'Cancelar',
-                style: TextStyle(color: AppTheme.textSecondary),
+                style: TextStyle(color: AppTheme.getTextSecondary(context)),
               ),
             ),
             ElevatedButton(
@@ -498,11 +499,11 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        backgroundColor: AppTheme.surfaceColor,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: const [
             CircularProgressIndicator(),
             SizedBox(height: 16),
             Text('Procesando archivo Excel...'),
@@ -600,7 +601,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceColor,
+        backgroundColor: Theme.of(context).cardColor,
         title: const Text('Encabezados incorrectos'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -631,7 +632,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceColor,
+        backgroundColor: Theme.of(context).cardColor,
         title: const Text('Resumen de Importación'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -641,7 +642,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
             if (errores.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text('Errores: ${errores.length}',
-                  style: const TextStyle(color: AppTheme.errorColor)),
+                  style: TextStyle(color: AppTheme.getErrorColor(context))),
             ],
             const SizedBox(height: 16),
             const Text('¿Desea importar estos estudiantes?'),
@@ -669,11 +670,11 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        backgroundColor: AppTheme.surfaceColor,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: const [
             CircularProgressIndicator(),
             SizedBox(height: 16),
             Text('Importando estudiantes...'),
@@ -711,7 +712,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceColor,
+        backgroundColor: Theme.of(context).cardColor,
         title: const Text('Importación Completada'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -728,11 +729,10 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                   style: const TextStyle(color: Colors.orange)),
             if (resultado.errores > 0)
               Text('✗ Errores: ${resultado.errores}',
-                  style: const TextStyle(color: AppTheme.errorColor)),
+                  style: TextStyle(color: AppTheme.getErrorColor(context))),
             if (resultado.sinCambios)
-              const Text(
-                  'No se realizaron cambios - todos los datos ya existían.',
-                  style: TextStyle(color: AppTheme.textSecondary)),
+              Text('No se realizaron cambios - todos los datos ya existían.',
+                  style: TextStyle(color: AppTheme.getTextSecondary(context))),
           ],
         ),
         actions: [
@@ -943,7 +943,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
   ) =>
       Container(
         padding: const EdgeInsets.all(16),
-        color: AppTheme.backgroundColor,
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: Column(
           children: [
             Row(
@@ -963,7 +963,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                                   icon: const Icon(Icons.refresh_rounded,
                                       size: 24),
                                   tooltip: 'Limpiar filtros',
-                                  color: AppTheme.errorColor,
+                                  color: AppTheme.getErrorColor(context),
                                 ),
                               );
                             }
@@ -1233,10 +1233,10 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
   Widget _buildEstudiantesList() => Consumer<EstudianteProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(
-                valueColor:
-                    AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).primaryColor),
               ),
             );
           }
@@ -1280,8 +1280,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                   onTap: () => provider.seleccionarEstudiante(estudiante),
                   backgroundColor:
                       provider.selectedEstudiante?.id == estudiante.id
-                          ? AppTheme.primaryColor.withOpacity(0.2)
-                          : AppTheme.surfaceColor,
+                          ? Theme.of(context).primaryColor.withOpacity(0.2)
+                          : Theme.of(context).cardColor,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1292,8 +1292,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                           Expanded(
                             child: Text(
                               estudiante.nombreCompleto,
-                              style: const TextStyle(
-                                color: AppTheme.textPrimary,
+                              style: TextStyle(
+                                color: AppTheme.getTextPrimary(context),
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1302,8 +1302,9 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                             ),
                           ),
                           if (provider.selectedEstudiante?.id == estudiante.id)
-                            const Icon(Icons.check_circle,
-                                color: AppTheme.primaryColor, size: 16),
+                            Icon(Icons.check_circle,
+                                color: Theme.of(context).primaryColor,
+                                size: 16),
                         ],
                       ),
 
@@ -1312,8 +1313,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                         const SizedBox(height: 8),
                         Text(
                           'ID: ${estudiante.numeroIdentidad!}',
-                          style: const TextStyle(
-                            color: AppTheme.textSecondary,
+                          style: TextStyle(
+                            color: AppTheme.getTextSecondary(context),
                             fontSize: 11,
                           ),
                           maxLines: 1,
@@ -1343,7 +1344,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.edit, size: 18),
-                            color: AppTheme.primaryColor,
+                            color: Theme.of(context).primaryColor,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                             onPressed: () =>
@@ -1351,7 +1352,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete, size: 18),
-                            color: AppTheme.errorColor,
+                            color: AppTheme.getErrorColor(context),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                             onPressed: () {
@@ -1384,13 +1385,13 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
         children: [
-          Icon(icon, size: 16, color: AppTheme.textTertiary),
+          Icon(icon, size: 16, color: AppTheme.getTextTertiary(context)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               label,
-              style:
-                  const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+              style: TextStyle(
+                  color: AppTheme.getTextTertiary(context), fontSize: 12),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -1407,13 +1408,13 @@ class _InfoRowCompact extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
         children: [
-          Icon(icon, size: 12, color: AppTheme.textTertiary),
+          Icon(icon, size: 12, color: AppTheme.getTextTertiary(context)),
           const SizedBox(width: 4),
           Expanded(
             child: Text(
               label,
-              style:
-                  const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+              style: TextStyle(
+                  color: AppTheme.getTextTertiary(context), fontSize: 10),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),

@@ -23,24 +23,32 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AnioLectivoProvider()),
-        ChangeNotifierProvider(create: (_) => ColegioProvider()),
-        ChangeNotifierProvider(create: (_) => AsignaturaProvider()),
-        ChangeNotifierProvider(create: (_) => GradoProvider()),
-        ChangeNotifierProvider(create: (_) => NotasProvider()),
-        ChangeNotifierProvider(create: (_) => SeccionProvider()),
-        ChangeNotifierProvider(create: (_) => CorteEvaluativoProvider()),
-        ChangeNotifierProvider(create: (_) => IndicadorEvaluacionProvider()),
-        ChangeNotifierProvider(create: (_) => CriterioEvaluacionProvider()),
-        ChangeNotifierProvider(create: (_) => EstudianteProvider()),
-        ChangeNotifierProvider(create: (_) => AparienciaProvider()),
-      ],
-      child: MaterialApp(
-        title: 'Keimagrade',
-        theme: AppTheme.darkTheme,
-        home: const HomeScreen(),
-        debugShowCheckedModeBanner: false,
-      ),
-    );
+        providers: [
+          ChangeNotifierProvider(create: (_) => AnioLectivoProvider()),
+          ChangeNotifierProvider(create: (_) => ColegioProvider()),
+          ChangeNotifierProvider(create: (_) => AsignaturaProvider()),
+          ChangeNotifierProvider(create: (_) => GradoProvider()),
+          ChangeNotifierProvider(create: (_) => NotasProvider()),
+          ChangeNotifierProvider(create: (_) => SeccionProvider()),
+          ChangeNotifierProvider(create: (_) => CorteEvaluativoProvider()),
+          ChangeNotifierProvider(create: (_) => IndicadorEvaluacionProvider()),
+          ChangeNotifierProvider(create: (_) => CriterioEvaluacionProvider()),
+          ChangeNotifierProvider(create: (_) => EstudianteProvider()),
+          ChangeNotifierProvider(create: (_) => AparienciaProvider()),
+        ],
+        child: Consumer<AparienciaProvider>(
+          builder: (context, apariencia, _) {
+            return MaterialApp(
+              title: 'Keimagrade',
+              theme: AppTheme.buildTheme(
+                  apariencia.primaryColor, Brightness.light),
+              darkTheme:
+                  AppTheme.buildTheme(apariencia.primaryColor, Brightness.dark),
+              themeMode: apariencia.themeMode,
+              home: const HomeScreen(),
+              debugShowCheckedModeBanner: false,
+            );
+          },
+        ),
+      );
 }

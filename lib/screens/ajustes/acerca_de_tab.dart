@@ -21,8 +21,10 @@ class AcercaDeTab extends StatelessWidget {
             const SizedBox(height: 24),
             _buildInfoRow('Nombre', 'Keimagrade'),
             _buildInfoRow('Versión', '1.0.0'),
-            _buildInfoRow('Descripción', 'Sistema de gestión de notas escolares'),
-            _buildInfoRow('Desarrollador', 'Keimagrade Team'),
+            _buildInfoRow(
+                'Descripción', 'Sistema de gestión de notas escolares'),
+            _buildInfoRow(
+                'Desarrollador', 'Pedro Luis Barrera Arostegui - Keimer'),
           ],
         ),
       );

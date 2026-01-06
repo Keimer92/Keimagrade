@@ -311,7 +311,7 @@ class _NotasScreenState extends State<NotasScreen>
   ) =>
       Container(
         padding: const EdgeInsets.all(16),
-        color: AppTheme.backgroundColor,
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: Column(
           children: [
             SingleChildScrollView(
@@ -327,7 +327,7 @@ class _NotasScreenState extends State<NotasScreen>
                             onPressed: () => provider.limpiarFiltros(),
                             icon: const Icon(Icons.refresh_rounded, size: 24),
                             tooltip: 'Limpiar filtros',
-                            color: AppTheme.errorColor,
+                            color: AppTheme.getErrorColor(context),
                           ),
                         );
                       }
@@ -583,21 +583,22 @@ class _NotasScreenState extends State<NotasScreen>
   Widget _buildNotasList() => Consumer<NotasProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading) {
-            return const Center(
+            return Center(
                 child: CircularProgressIndicator(
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(AppTheme.primaryColor)));
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).primaryColor)));
           }
           if (provider.notas.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  EmptyState(
+                  const EmptyState(
                       message: 'No hay notas registradas', icon: Icons.grade),
-                  SizedBox(height: 24),
+                  const SizedBox(height: 24),
                   Text('Configure los filtros para ver las notas',
-                      style: TextStyle(color: AppTheme.textSecondary)),
+                      style:
+                          TextStyle(color: AppTheme.getTextSecondary(context))),
                 ],
               ),
             );
@@ -617,19 +618,20 @@ class _NotasScreenState extends State<NotasScreen>
                 final notasEstudiante = notasPorEstudiante[estudianteId]!;
                 final estudianteFirst = notasEstudiante.first;
                 return CustomCard(
-                  backgroundColor: AppTheme.surfaceColor,
+                  backgroundColor: Theme.of(context).cardColor,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(estudianteFirst.estudianteNombreCompleto,
-                          style: const TextStyle(
-                              color: AppTheme.textPrimary,
+                          style: TextStyle(
+                              color: AppTheme.getTextPrimary(context),
                               fontSize: 16,
                               fontWeight: FontWeight.bold)),
                       if (estudianteFirst.numeroIdentidad != null)
                         Text('ID: ${estudianteFirst.numeroIdentidad!}',
-                            style: const TextStyle(
-                                color: AppTheme.textSecondary, fontSize: 12)),
+                            style: TextStyle(
+                                color: AppTheme.getTextSecondary(context),
+                                fontSize: 12)),
                       const SizedBox(height: 12),
                       ...notasEstudiante.map((nota) => Padding(
                             padding: const EdgeInsets.only(bottom: 8),
@@ -638,15 +640,17 @@ class _NotasScreenState extends State<NotasScreen>
                               children: [
                                 Expanded(
                                     child: Text(nota.corteEvaluativoNombre,
-                                        style: const TextStyle(
-                                            color: AppTheme.textSecondary,
+                                        style: TextStyle(
+                                            color: AppTheme.getTextSecondary(
+                                                context),
                                             fontSize: 14))),
                                 Row(
                                   children: [
                                     Text(
                                         '${nota.puntosObtenidos}/${nota.puntosTotales}',
-                                        style: const TextStyle(
-                                            color: AppTheme.textPrimary,
+                                        style: TextStyle(
+                                            color: AppTheme.getTextPrimary(
+                                                context),
                                             fontSize: 14,
                                             fontWeight: FontWeight.w500)),
                                     const SizedBox(width: 8),
@@ -666,8 +670,9 @@ class _NotasScreenState extends State<NotasScreen>
                                     ),
                                     const SizedBox(width: 8),
                                     Text('${nota.porcentaje}%',
-                                        style: const TextStyle(
-                                            color: AppTheme.textSecondary,
+                                        style: TextStyle(
+                                            color: AppTheme.getTextSecondary(
+                                                context),
                                             fontSize: 12)),
                                   ],
                                 ),
@@ -704,21 +709,21 @@ class _NotasScreenState extends State<NotasScreen>
           if (notasProvider.isLoading ||
               estudianteProvider.isLoading ||
               indicadorProvider.isLoading) {
-            return const Center(
+            return Center(
                 child: CircularProgressIndicator(
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(AppTheme.primaryColor)));
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).primaryColor)));
           }
           final estudiantesFiltrados =
               _filtrarEstudiantes(estudianteProvider.estudiantes);
           if (indicadorProvider.indicadores.isEmpty) {
-            return const Center(
+            return Center(
                 child: EmptyState(
                     message: 'No hay indicadores configurados',
                     icon: Icons.assignment_late));
           }
           if (estudiantesFiltrados.isEmpty) {
-            return const Center(
+            return Center(
                 child: EmptyState(
                     message: 'No hay estudiantes para calificar',
                     icon: Icons.people));
@@ -734,10 +739,11 @@ class _NotasScreenState extends State<NotasScreen>
               scrollDirection: Axis.horizontal,
               child: SingleChildScrollView(
                 child: Container(
-                  color: AppTheme.surfaceColor,
+                  color: Theme.of(context).cardColor,
                   child: Table(
                     border: TableBorder.all(
-                        color: AppTheme.textTertiary.withOpacity(0.3)),
+                        color:
+                            AppTheme.getTextTertiary(context).withOpacity(0.3)),
                     columnWidths: _buildEditableTableColumnWidths(
                         indicadorProvider.indicadores),
                     children: [
@@ -800,12 +806,13 @@ class _NotasScreenState extends State<NotasScreen>
       List<IndicadorEvaluacion> indicadores) {
     final firstRowCells = <TableCell>[];
     final secondRowCells = <TableCell>[];
-    firstRowCells.add(const TableCell(
+    firstRowCells.add(TableCell(
         child: Padding(
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.all(8),
             child: Text('Estudiante',
                 style: TextStyle(
-                    fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.getTextPrimary(context)),
                 textAlign: TextAlign.center))));
     secondRowCells.add(const TableCell(child: SizedBox.shrink()));
     for (final indicador in indicadores) {
@@ -816,9 +823,9 @@ class _NotasScreenState extends State<NotasScreen>
                 child: Padding(
                     padding: const EdgeInsets.all(4),
                     child: Text('Indicador ${indicador.numero}',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.getTextPrimary(context),
                             fontSize: 11),
                         textAlign: TextAlign.center)))));
       }
@@ -833,38 +840,39 @@ class _NotasScreenState extends State<NotasScreen>
                 child: Padding(
                     padding: const EdgeInsets.all(2),
                     child: Text('C${i + 1}',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.getTextPrimary(context),
                             fontSize: 10),
                         textAlign: TextAlign.center)))));
       }
-      secondRowCells.add(const TableCell(
+      secondRowCells.add(TableCell(
           child: Padding(
-              padding: EdgeInsets.all(2),
+              padding: const EdgeInsets.all(2),
               child: Text('Total',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.getTextPrimary(context),
                       fontSize: 10),
                   textAlign: TextAlign.center))));
     }
-    firstRowCells.add(const TableCell(
+    firstRowCells.add(TableCell(
         child: Padding(
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.all(8),
             child: Text('Total Puntos',
                 style: TextStyle(
-                    fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.getTextPrimary(context)),
                 textAlign: TextAlign.center))));
     secondRowCells.add(const TableCell(child: SizedBox.shrink()));
     return [
       TableRow(
-          decoration:
-              BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.1)),
+          decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withOpacity(0.1)),
           children: firstRowCells),
       TableRow(
-          decoration:
-              BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.05)),
+          decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withOpacity(0.05)),
           children: secondRowCells),
     ];
   }
@@ -885,12 +893,13 @@ class _NotasScreenState extends State<NotasScreen>
         padding: const EdgeInsets.all(8),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(estudiante.nombreCompleto,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w500, color: AppTheme.textPrimary)),
+              style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.getTextPrimary(context))),
           if (estudiante.numeroIdentidad != null)
             Text('ID: ${estudiante.numeroIdentidad!}',
-                style: const TextStyle(
-                    fontSize: 10, color: AppTheme.textSecondary)),
+                style: TextStyle(
+                    fontSize: 10, color: AppTheme.getTextSecondary(context))),
         ]),
       ),
     ));
@@ -956,7 +965,7 @@ class _NotasScreenState extends State<NotasScreen>
                             color: esCualitativaReal
                                 ? _getSiglaColor(
                                     criterio.valorCualitativo ?? '')
-                                : AppTheme.textPrimary,
+                                : AppTheme.getTextPrimary(context),
                             fontWeight: esCualitativaReal
                                 ? FontWeight.bold
                                 : FontWeight.normal),
@@ -1018,9 +1027,9 @@ class _NotasScreenState extends State<NotasScreen>
               color: _getScoreColor(indicadorTotalVal, indicador.totalMaximo),
               child: Text(
                   '${indicadorTotalVal.round()}/${indicador.totalMaximo.toInt()}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.getTextPrimary(context),
                       fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center))));
       totalPuntosRow += indicadorTotalVal;
@@ -1038,9 +1047,9 @@ class _NotasScreenState extends State<NotasScreen>
         color: _getScoreColor(totalPuntosRow, maxTotal).withOpacity(0.2),
         child: Column(children: [
           Text('${totalPuntosRow.round()}/${maxTotal.toInt()}',
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 14,
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.getTextPrimary(context),
                   fontWeight: FontWeight.bold),
               textAlign: TextAlign.center),
           const SizedBox(height: 4),
@@ -1147,7 +1156,7 @@ class _NotasScreenState extends State<NotasScreen>
       case 'AI':
         return Colors.red.shade700;
       default:
-        return AppTheme.textPrimary;
+        return AppTheme.getTextPrimary(context);
     }
   }
 

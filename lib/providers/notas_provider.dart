@@ -7,7 +7,6 @@ import '../repositories/estudiante_repository.dart';
 class NotasProvider extends ChangeNotifier {
   final NotasRepository _repository = NotasRepository();
   final EstudianteRepository _estudianteRepository = EstudianteRepository();
-  final List<Nota> _notas = [];
   List<Nota> _notasFiltradas = [];
   List<NotaDetalle> _notasDetalladas = [];
   bool _isLoading = false;
@@ -102,7 +101,7 @@ class NotasProvider extends ChangeNotifier {
         _notasFiltradas = await _repository.obtenerTodas();
       }
     } catch (e) {
-      print('Error al cargar notas: $e');
+      debugPrint('Error al cargar notas: $e');
       _notasFiltradas = [];
     } finally {
       _isLoading = false;
@@ -132,6 +131,7 @@ class NotasProvider extends ChangeNotifier {
     _seccionIdFiltro = seccionId;
 
     await cargarNotas();
+    await cargarNotasDetalladas();
   }
 
   /// Limpia todos los filtros y muestra todas las notas
@@ -143,6 +143,7 @@ class NotasProvider extends ChangeNotifier {
     _seccionIdFiltro = null;
 
     await cargarNotas();
+    await cargarNotasDetalladas();
   }
 
   /// Actualiza la búsqueda
@@ -186,7 +187,7 @@ class NotasProvider extends ChangeNotifier {
         searchQuery: _searchQuery,
       );
     } catch (e) {
-      print('Error al cargar notas detalladas: $e');
+      debugPrint('Error al cargar notas detalladas: $e');
       _notasDetalladas = [];
     } finally {
       if (!silent) {
@@ -280,7 +281,7 @@ class NotasProvider extends ChangeNotifier {
       // Recarga silenciosa para asegurar sincronización total con lógica de DB (si existe)
       await cargarNotasDetalladas(silent: true);
     } catch (e) {
-      print('Error al guardar nota manual: $e');
+      debugPrint('Error al guardar nota manual: $e');
       // En caso de error, forzar recarga con estado de carga para mostrar inconsistencia
       await cargarNotasDetalladas();
     }

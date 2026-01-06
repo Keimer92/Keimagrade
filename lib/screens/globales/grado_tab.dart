@@ -23,17 +23,18 @@ class _GradoTabState extends State<GradoTab> {
   }
 
   void _showGradoDialog({Grado? grado}) {
-    final numeroController = TextEditingController(text: grado?.numero.toString() ?? '');
+    final numeroController =
+        TextEditingController(text: grado?.numero.toString() ?? '');
     final nombreController = TextEditingController(text: grado?.nombre ?? '');
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceColor,
+        backgroundColor: Theme.of(context).cardColor,
         title: Text(
           grado == null ? 'Agregar Grado' : 'Editar Grado',
-          style: const TextStyle(
-            color: AppTheme.textPrimary,
+          style: TextStyle(
+            color: AppTheme.getTextPrimary(context),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -59,14 +60,15 @@ class _GradoTabState extends State<GradoTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
+            child: Text(
               'Cancelar',
-              style: TextStyle(color: AppTheme.textSecondary),
+              style: TextStyle(color: AppTheme.getTextSecondary(context)),
             ),
           ),
           ElevatedButton(
             onPressed: () async {
-              if (numeroController.text.isEmpty || nombreController.text.isEmpty) {
+              if (numeroController.text.isEmpty ||
+                  nombreController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Completa todos los campos')),
                 );
@@ -83,12 +85,14 @@ class _GradoTabState extends State<GradoTab> {
               );
 
               if (grado == null) {
-                final exito = await context.read<GradoProvider>().crearGrado(nuevoGrado);
+                final exito =
+                    await context.read<GradoProvider>().crearGrado(nuevoGrado);
                 if (!exito && mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('No se puede crear el grado. Ya existe un grado con número $numero o nombre "$nombre"'),
-                      backgroundColor: AppTheme.errorColor,
+                      content: Text(
+                          'No se puede crear el grado. Ya existe un grado con número $numero o nombre "$nombre"'),
+                      backgroundColor: AppTheme.getErrorColor(context),
                       duration: const Duration(seconds: 4),
                     ),
                   );
@@ -111,161 +115,172 @@ class _GradoTabState extends State<GradoTab> {
 
   @override
   Widget build(BuildContext context) => Consumer<GradoProvider>(
-      builder: (context, provider, _) {
-        if (provider.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
-            ),
-          );
-        }
+        builder: (context, provider, _) {
+          if (provider.isLoading) {
+            return Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).primaryColor),
+              ),
+            );
+          }
 
-        if (provider.grados.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const EmptyState(
-                  message: 'No hay grados registrados',
-                  icon: Icons.layers,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
+          if (provider.grados.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const EmptyState(
+                    message: 'No hay grados registrados',
+                    icon: Icons.layers,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: _showGradoDialog,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Agregar Grado'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: ElevatedButton.icon(
                   onPressed: _showGradoDialog,
                   icon: const Icon(Icons.add),
                   label: const Text('Agregar Grado'),
                 ),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: ElevatedButton.icon(
-                onPressed: _showGradoDialog,
-                icon: const Icon(Icons.add),
-                label: const Text('Agregar Grado'),
               ),
-            ),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  crossAxisSpacing: 6,
-                  mainAxisSpacing: 6,
-                  childAspectRatio: 1.6,
-                ),
-                itemCount: provider.grados.length,
-                itemBuilder: (context, index) {
-                  final grado = provider.grados[index];
-                  return CustomCard(
-                    onTap: () => provider.seleccionarGrado(grado),
-                    backgroundColor: provider.selectedGrado?.id == grado.id
-                        ? AppTheme.primaryColor.withOpacity(0.2)
-                        : AppTheme.surfaceColor,
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${grado.numero}',
-                              style: const TextStyle(
-                                color: AppTheme.primaryColor,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    crossAxisSpacing: 6,
+                    mainAxisSpacing: 6,
+                    childAspectRatio: 1.6,
+                  ),
+                  itemCount: provider.grados.length,
+                  itemBuilder: (context, index) {
+                    final grado = provider.grados[index];
+                    return CustomCard(
+                      onTap: () => provider.seleccionarGrado(grado),
+                      backgroundColor: provider.selectedGrado?.id == grado.id
+                          ? Theme.of(context).primaryColor.withOpacity(0.2)
+                          : Theme.of(context).cardColor,
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .primaryColor
+                                  .withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${grado.numero}',
+                                style: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          grado.nombre,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                          const SizedBox(height: 12),
+                          Text(
+                            grado.nombre,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppTheme.getTextPrimary(context),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        if (provider.selectedGrado?.id == grado.id)
-                          const Icon(
-                            Icons.check_circle,
-                            color: AppTheme.primaryColor,
-                            size: 20,
-                          ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                const Text(
-                                  'Cualitativo:',
-                                  style: TextStyle(
-                                    color: AppTheme.textTertiary,
-                                    fontSize: 12,
+                          const SizedBox(height: 8),
+                          if (provider.selectedGrado?.id == grado.id)
+                            Icon(
+                              Icons.check_circle,
+                              color: Theme.of(context).primaryColor,
+                              size: 20,
+                            ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    'Cualitativo:',
+                                    style: TextStyle(
+                                      color: AppTheme.getTextTertiary(context),
+                                      fontSize: 12,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Switch(
-                                  value: grado.cualitativo,
-                                  activeThumbColor: AppTheme.primaryColor,
-                                  inactiveThumbColor: AppTheme.textTertiary,
-                                  inactiveTrackColor: AppTheme.cardColor,
-                                  onChanged: (value) {
-                                    final updatedGrado = grado.copyWith(cualitativo: value);
-                                    provider.actualizarGrado(updatedGrado);
-                                  },
-                                ),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: AppTheme.primaryColor, size: 18),
-                                  onPressed: () => _showGradoDialog(grado: grado),
-                                  constraints: const BoxConstraints(),
-                                  padding: EdgeInsets.zero,
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: AppTheme.errorColor, size: 18),
-                                  onPressed: () {
-                                    DialogHelper.showDeleteConfirmation(
-                                      context: context,
-                                      itemName: grado.nombre,
-                                      onConfirm: () {
-                                        provider.eliminarGrado(grado.id!);
-                                      },
-                                    );
-                                  },
-                                  constraints: const BoxConstraints(),
-                                  padding: EdgeInsets.zero,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                                  const SizedBox(width: 8),
+                                  Switch(
+                                    value: grado.cualitativo,
+                                    activeThumbColor:
+                                        Theme.of(context).primaryColor,
+                                    inactiveThumbColor:
+                                        AppTheme.getTextTertiary(context),
+                                    inactiveTrackColor: AppTheme.cardColor,
+                                    onChanged: (value) {
+                                      final updatedGrado =
+                                          grado.copyWith(cualitativo: value);
+                                      provider.actualizarGrado(updatedGrado);
+                                    },
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit,
+                                        color: Theme.of(context).primaryColor,
+                                        size: 18),
+                                    onPressed: () =>
+                                        _showGradoDialog(grado: grado),
+                                    constraints: const BoxConstraints(),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete,
+                                        color: AppTheme.getErrorColor(context),
+                                        size: 18),
+                                    onPressed: () {
+                                      DialogHelper.showDeleteConfirmation(
+                                        context: context,
+                                        itemName: grado.nombre,
+                                        onConfirm: () {
+                                          provider.eliminarGrado(grado.id!);
+                                        },
+                                      );
+                                    },
+                                    constraints: const BoxConstraints(),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
-        );
-      },
-    );
+            ],
+          );
+        },
+      );
 }

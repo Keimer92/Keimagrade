@@ -7,12 +7,19 @@ import '../screens/estudiantes/estudiantes_screen.dart';
 import '../screens/notas/notas_screen.dart';
 
 class AparienciaProvider extends ChangeNotifier {
-
   AparienciaProvider() {
     _currentScreens = _defaultScreens.map(Map<String, dynamic>.from).toList();
     _loadConfiguration();
   }
   static const String _prefsKey = 'screen_order';
+  static const String _themeModeKey = 'theme_mode';
+  static const String _primaryColorKey = 'primary_color';
+
+  ThemeMode _themeMode = ThemeMode.dark;
+  Color _primaryColor = const Color(0xFFD4AF37); // Dorado por defecto
+
+  ThemeMode get themeMode => _themeMode;
+  Color get primaryColor => _primaryColor;
 
   // Lista por defecto de las pantallas
   final List<Map<String, dynamic>> _defaultScreens = [
@@ -97,7 +104,8 @@ class AparienciaProvider extends ChangeNotifier {
         );
         if (screen.isNotEmpty) {
           final screenCopy = Map<String, dynamic>.from(screen);
-          final isEnabled = prefs.getBool('${_prefsKey}_${screenId}_enabled') ?? screen['enabled'] as bool;
+          final isEnabled = prefs.getBool('${_prefsKey}_${screenId}_enabled') ??
+              screen['enabled'] as bool;
           screenCopy['enabled'] = isEnabled;
           orderedScreens.add(screenCopy);
         }
@@ -113,6 +121,13 @@ class AparienciaProvider extends ChangeNotifier {
       _currentScreens = orderedScreens;
     }
 
+    // Cargar Tema
+    final themeIndex = prefs.getInt(_themeModeKey) ?? 2; // Default to dark (2)
+    _themeMode = ThemeMode.values[themeIndex];
+
+    final colorValue = prefs.getInt(_primaryColorKey) ?? 0xFFD4AF37;
+    _primaryColor = Color(colorValue);
+
     notifyListeners();
   }
 
@@ -126,6 +141,19 @@ class AparienciaProvider extends ChangeNotifier {
       final isEnabled = screen['enabled'] as bool;
       await prefs.setBool('${_prefsKey}_${screenId}_enabled', isEnabled);
     }
+
+    await prefs.setInt(_themeModeKey, _themeMode.index);
+    await prefs.setInt(_primaryColorKey, _primaryColor.value);
+  }
+
+  void setThemeMode(ThemeMode mode) {
+    _themeMode = mode;
+    notifyListeners();
+  }
+
+  void setPrimaryColor(Color color) {
+    _primaryColor = color;
+    notifyListeners();
   }
 
   void reorderScreens(int oldIndex, int newIndex) {

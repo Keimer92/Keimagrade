@@ -8,35 +8,35 @@ class AjustesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Ajustes'),
-          elevation: 0,
-        bottom: const TabBar(
-          tabs: [
-            Tab(
-              icon: Icon(Icons.palette),
-              text: 'Apariencia',
+        length: 3,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Ajustes'),
+            elevation: 0,
+            bottom: const TabBar(
+              tabs: [
+                Tab(
+                  icon: Icon(Icons.palette),
+                  text: 'Apariencia',
+                ),
+                Tab(
+                  icon: Icon(Icons.bug_report),
+                  text: 'Debugging',
+                ),
+                Tab(
+                  icon: Icon(Icons.info),
+                  text: 'Acerca de',
+                ),
+              ],
             ),
-            Tab(
-              icon: Icon(Icons.info),
-              text: 'Acerca de',
-            ),
-            Tab(
-              icon: Icon(Icons.bug_report),
-              text: 'Debugging',
-            ),
-          ],
+          ),
+          body: const TabBarView(
+            children: [
+              AparienciaTab(),
+              DebuggingTab(),
+              AcercaDeTab(),
+            ],
+          ),
         ),
-        ),
-        body: const TabBarView(
-          children: [
-            AparienciaTab(),
-            AcercaDeTab(),
-            DebuggingTab(),
-          ],
-        ),
-      ),
-    );
+      );
 }
