@@ -29,7 +29,6 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
   void initState() {
     super.initState();
     Future.microtask(() async {
-      await context.read<EstudianteProvider>().cargarEstudiantes();
       await context.read<AnioLectivoProvider>().cargarAnios();
       await context.read<ColegioProvider>().cargarColegios();
       await context.read<AsignaturaProvider>().cargarAsignaturas();
@@ -1225,7 +1224,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     required Function(String?) onChanged,
   }) =>
       DropdownButtonFormField<String>(
-        value: value != 'Seleccionar' && items.contains(value) ? value : null,
+        initialValue: value != 'Seleccionar' && items.contains(value) ? value : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

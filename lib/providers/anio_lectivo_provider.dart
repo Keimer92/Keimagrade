@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/anio_lectivo.dart';
-import '../models/corte_evaluativo.dart';
 import '../repositories/anio_lectivo_repository.dart';
 import '../repositories/corte_evaluativo_repository.dart';
 import '../repositories/estudiante_repository.dart';
@@ -80,52 +79,11 @@ class AnioLectivoProvider extends ChangeNotifier {
   Future<void> _crearCortesPorDefecto(int anioLectivoId) async {
     try {
       final corteRepository = CorteEvaluativoRepository();
-
-      // Check if cortes already exist for this academic year
-      final cortesExistentes = await corteRepository.obtenerPorAnioLectivo(anioLectivoId);
-      if (cortesExistentes.isNotEmpty) {
-        print('Cortes ya existen para el año lectivo $anioLectivoId');
-        return;
-      }
-
-      final cortesDefault = [
-        CorteEvaluativo(
-          anioLectivoId: anioLectivoId,
-          numero: 1,
-          nombre: '1er Corte',
-          puntosTotales: 100,
-          activo: true,
-        ),
-        CorteEvaluativo(
-          anioLectivoId: anioLectivoId,
-          numero: 2,
-          nombre: '2do Corte',
-          puntosTotales: 100,
-          activo: true,
-        ),
-        CorteEvaluativo(
-          anioLectivoId: anioLectivoId,
-          numero: 3,
-          nombre: '3er Corte',
-          puntosTotales: 100,
-          activo: true,
-        ),
-        CorteEvaluativo(
-          anioLectivoId: anioLectivoId,
-          numero: 4,
-          nombre: '4to Corte',
-          puntosTotales: 100,
-          activo: true,
-        ),
-      ];
-
-      for (final corte in cortesDefault) {
-        await corteRepository.crear(corte);
-      }
-
-      print('Cortes por defecto creados para el año lectivo $anioLectivoId');
+      await corteRepository.asegurarEstructuraDefault(anioLectivoId);
+      print(
+          'Cortes, indicadores y criterios por defecto creados para el año lectivo $anioLectivoId');
     } catch (e) {
-      print('Error al crear cortes por defecto: $e');
+      print('Error al crear estructura por defecto: $e');
     }
   }
 
@@ -139,7 +97,7 @@ class AnioLectivoProvider extends ChangeNotifier {
       // Verificar si ya existe un año con el mismo número
       final todosLosAnios = await _repository.obtenerTodos();
       final existeAnio = todosLosAnios.any((a) => a.anio == anio.anio);
-      
+
       if (existeAnio) {
         print('Ya existe un año lectivo con el año ${anio.anio}');
         return;
@@ -166,14 +124,15 @@ class AnioLectivoProvider extends ChangeNotifier {
       // Si se está intentando desactivar el único año activo, impedirlo
       if (!anio.activo) {
         final otrosActivos = await _repository.obtenerActivos();
-        final otrosActivosSinEste = otrosActivos.where((a) => a.id != anio.id).length;
-        
+        final otrosActivosSinEste =
+            otrosActivos.where((a) => a.id != anio.id).length;
+
         if (otrosActivosSinEste == 0) {
           print('No se puede desactivar el único año lectivo activo');
           return;
         }
       }
-      
+
       // Si se está activando un año, desactivar todos los demás
       if (anio.activo) {
         final todosLosAnios = await _repository.obtenerTodos();
@@ -184,7 +143,7 @@ class AnioLectivoProvider extends ChangeNotifier {
           }
         }
       }
-      
+
       await _repository.actualizar(anio);
       await cargarTodosLosAnios();
     } catch (e) {
@@ -196,7 +155,8 @@ class AnioLectivoProvider extends ChangeNotifier {
     try {
       // Verificar si el año tiene asignaciones de estudiantes
       final estudianteRepository = EstudianteRepository();
-      final colegiosConAsignacion = await estudianteRepository.obtenerColegiosConAsignacion(anioLectivoId: id);
+      final colegiosConAsignacion = await estudianteRepository
+          .obtenerColegiosConAsignacion(anioLectivoId: id);
 
       if (colegiosConAsignacion.isNotEmpty) {
         // El año tiene datos relacionados, no se puede eliminar

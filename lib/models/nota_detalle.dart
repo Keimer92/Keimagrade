@@ -39,11 +39,14 @@ class NotaDetalle {
   final double porcentaje;
   final String calificacion;
 
-  String get estudianteNombreCompleto => '$estudianteNombre $estudianteApellido';
+  String get estudianteNombreCompleto =>
+      '$estudianteNombre $estudianteApellido';
 
   static List<IndicadorDetalle> _parseIndicadores(dynamic indicadoresData) {
     if (indicadoresData is List) {
-      return indicadoresData.map((item) => IndicadorDetalle.fromMap(item)).toList();
+      return indicadoresData
+          .map((item) => IndicadorDetalle.fromMap(item))
+          .toList();
     }
     return [];
   }
@@ -59,7 +62,8 @@ class IndicadorDetalle {
     required this.totalMaximo,
   });
 
-  factory IndicadorDetalle.fromMap(Map<String, dynamic> map) => IndicadorDetalle(
+  factory IndicadorDetalle.fromMap(Map<String, dynamic> map) =>
+      IndicadorDetalle(
         id: map['id'],
         numero: map['numero'],
         descripcion: map['descripcion'],
@@ -77,7 +81,9 @@ class IndicadorDetalle {
 
   static List<CriterioDetalle> _parseCriterios(dynamic criteriosData) {
     if (criteriosData is List) {
-      return criteriosData.map((item) => CriterioDetalle.fromMap(item)).toList();
+      return criteriosData
+          .map((item) => CriterioDetalle.fromMap(item))
+          .toList();
     }
     return [];
   }
@@ -90,6 +96,7 @@ class CriterioDetalle {
     required this.descripcion,
     required this.puntosMaximos,
     required this.puntosObtenidos,
+    this.valorCualitativo,
   });
 
   factory CriterioDetalle.fromMap(Map<String, dynamic> map) => CriterioDetalle(
@@ -98,6 +105,7 @@ class CriterioDetalle {
         descripcion: map['descripcion'],
         puntosMaximos: map['puntosMaximos'],
         puntosObtenidos: map['puntosObtenidos'],
+        valorCualitativo: map['valor_cualitativo'],
       );
 
   final int id;
@@ -105,4 +113,5 @@ class CriterioDetalle {
   final String descripcion;
   final int puntosMaximos;
   final int puntosObtenidos;
+  final String? valorCualitativo;
 }

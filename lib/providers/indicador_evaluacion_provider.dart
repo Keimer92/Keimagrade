@@ -29,9 +29,12 @@ class IndicadorEvaluacionProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> cargarIndicadoresPorCorte(int corteId) async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> cargarIndicadoresPorCorte(int corteId,
+      {bool showLoading = false}) async {
+    if (showLoading) {
+      _isLoading = true;
+      notifyListeners();
+    }
     try {
       _indicadores = await _repository.obtenerPorCorte(corteId);
       if (_indicadores.isNotEmpty) {
@@ -40,8 +43,12 @@ class IndicadorEvaluacionProvider extends ChangeNotifier {
     } catch (e) {
       print('Error al cargar indicadores por corte: $e');
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (showLoading) {
+        _isLoading = false;
+        notifyListeners();
+      } else {
+        notifyListeners();
+      }
     }
   }
 

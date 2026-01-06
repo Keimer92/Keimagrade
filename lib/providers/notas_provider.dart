@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/nota.dart';
 import '../models/nota_detalle.dart';
-import '../models/corte_evaluativo.dart';
 import '../repositories/notas_repository.dart';
 import '../repositories/estudiante_repository.dart';
 
@@ -25,7 +24,8 @@ class NotasProvider extends ChangeNotifier {
   List<Nota> get notas => _notasFiltradas;
   List<NotaDetalle> get notasDetalladas => _notasDetalladas;
   bool get isLoading => _isLoading;
-  bool get tieneFiltrosActivos => _anioLectivoIdFiltro != null ||
+  bool get tieneFiltrosActivos =>
+      _anioLectivoIdFiltro != null ||
       _colegioIdFiltro != null ||
       _asignaturaIdFiltro != null ||
       _gradoIdFiltro != null ||
@@ -40,17 +40,20 @@ class NotasProvider extends ChangeNotifier {
 
   /// Obtiene los IDs de colegios disponibles para el año lectivo seleccionado
   Future<List<int>> obtenerColegiosDisponibles(int anioLectivoId) async =>
-      _estudianteRepository.obtenerColegiosConAsignacion(anioLectivoId: anioLectivoId);
+      _estudianteRepository.obtenerColegiosConAsignacion(
+          anioLectivoId: anioLectivoId);
 
   /// Obtiene los IDs de asignaturas disponibles para el año y colegio seleccionados
-  Future<List<int>> obtenerAsignaturasDisponibles(int anioLectivoId, int colegioId) async =>
+  Future<List<int>> obtenerAsignaturasDisponibles(
+          int anioLectivoId, int colegioId) async =>
       _estudianteRepository.obtenerAsignaturasConAsignacion(
         anioLectivoId: anioLectivoId,
         colegioId: colegioId,
       );
 
   /// Obtiene los IDs de grados disponibles para el año, colegio y asignatura seleccionados
-  Future<List<int>> obtenerGradosDisponibles(int anioLectivoId, int colegioId, int asignaturaId) async =>
+  Future<List<int>> obtenerGradosDisponibles(
+          int anioLectivoId, int colegioId, int asignaturaId) async =>
       _estudianteRepository.obtenerGradosConAsignacion(
         anioLectivoId: anioLectivoId,
         colegioId: colegioId,
@@ -58,16 +61,14 @@ class NotasProvider extends ChangeNotifier {
       );
 
   /// Obtiene los IDs de secciones disponibles para el año, colegio, asignatura y grado seleccionados
-  Future<List<int>> obtenerSeccionesDisponibles(int anioLectivoId, int colegioId, int asignaturaId, int gradoId) async =>
+  Future<List<int>> obtenerSeccionesDisponibles(int anioLectivoId,
+          int colegioId, int asignaturaId, int gradoId) async =>
       _estudianteRepository.obtenerSeccionesConAsignacion(
         anioLectivoId: anioLectivoId,
         colegioId: colegioId,
         asignaturaId: asignaturaId,
         gradoId: gradoId,
       );
-
-  /// Obtiene los cortes evaluativos que tienen indicadores configurados para un año lectivo
-  Future<List<CorteEvaluativo>> obtenerCortesDisponibles(int anioLectivoId) async => _repository.obtenerCortesPorAnioLectivo(anioLectivoId);
 
   Future<void> cargarNotas() async {
     _isLoading = true;
@@ -109,11 +110,12 @@ class NotasProvider extends ChangeNotifier {
     }
   }
 
-  bool _todosLosFiltrosCompletos() => _anioLectivoIdFiltro != null &&
-        _colegioIdFiltro != null &&
-        _asignaturaIdFiltro != null &&
-        _gradoIdFiltro != null &&
-        _seccionIdFiltro != null;
+  bool _todosLosFiltrosCompletos() =>
+      _anioLectivoIdFiltro != null &&
+      _colegioIdFiltro != null &&
+      _asignaturaIdFiltro != null &&
+      _gradoIdFiltro != null &&
+      _seccionIdFiltro != null;
 
   /// Aplica filtros por año lectivo, colegio, asignatura, grado y sección
   Future<void> aplicarFiltros({
@@ -197,5 +199,41 @@ class NotasProvider extends ChangeNotifier {
   }
 
   /// Verifica si todos los filtros incluyendo corte están completos
-  bool todosLosFiltrosCompletosConCorte() => _todosLosFiltrosCompletos() && _corteIdFiltro != null;
+  bool todosLosFiltrosCompletosConCorte() =>
+      _todosLosFiltrosCompletos() && _corteIdFiltro != null;
+
+  /// Guarda o actualiza una nota de estudiante
+  Future<void> guardarNotaManual({
+    required int estudianteId,
+    required int criterioId,
+    required String valorCualitativo,
+    required double puntosObtenidos,
+  }) async {
+    try {
+      await _repository.guardarNotaEstudiante(
+        estudianteId: estudianteId,
+        criterioId: criterioId,
+        valorCualitativo: valorCualitativo,
+        puntosObtenidos: puntosObtenidos,
+      );
+
+      // Actualizar localmente la lista de notas detalladas
+      for (final notaDetalle in _notasDetalladas) {
+        if (notaDetalle.estudianteId == estudianteId) {
+          for (final indicador in notaDetalle.indicadores) {
+            for (var i = 0; i < indicador.criterios.length; i++) {
+              if (indicador.criterios[i].id == criterioId) {
+                // Como los modelos son inmutables (final), tendríamos que recrear el objeto o recargar.
+                // Por ahora, recargamos para asegurar consistencia total.
+                await cargarNotasDetalladas();
+                return;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error al guardar nota manual: $e');
+    }
+  }
 }

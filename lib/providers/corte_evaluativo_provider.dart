@@ -17,14 +17,32 @@ class CorteEvaluativoProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _cortes = await _repository.obtenerActivos();
-      if (_cortes.isNotEmpty) {
-        _selectedCorte = _cortes.first;
-      }
     } catch (e) {
       print('Error al cargar cortes: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> cargarCortesPorAnio(int anioId,
+      {bool showLoading = false}) async {
+    if (showLoading) {
+      _isLoading = true;
+      notifyListeners();
+    }
+
+    try {
+      _cortes = await _repository.obtenerPorAnioLectivo(anioId);
+    } catch (e) {
+      print('Error al cargar cortes por año: $e');
+    } finally {
+      if (showLoading) {
+        _isLoading = false;
+        notifyListeners();
+      } else {
+        notifyListeners();
+      }
     }
   }
 

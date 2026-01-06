@@ -2,7 +2,6 @@ import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseHelper {
-
   factory DatabaseHelper() => _instance;
 
   DatabaseHelper._internal();
@@ -18,11 +17,11 @@ class DatabaseHelper {
   Future<Database> _initDatabase() async {
     // Initialize sqflite_common_ffi for desktop platforms
     databaseFactory = databaseFactoryFfi;
-    
+
     final String path = join(await getDatabasesPath(), 'keimagrade.db');
     return openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -166,6 +165,20 @@ class DatabaseHelper {
       )
     ''');
 
+    // Tabla de Notas de Estudiantes (almacena la calificación individual por criterio)
+    await db.execute('''
+      CREATE TABLE notas_estudiantes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        estudiante_id INTEGER NOT NULL,
+        criterio_id INTEGER NOT NULL,
+        valor_cualitativo TEXT, -- AA, AS, AF, AI
+        puntos_obtenidos REAL NOT NULL,
+        FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id),
+        FOREIGN KEY (criterio_id) REFERENCES criterios_evaluacion(id),
+        UNIQUE(estudiante_id, criterio_id)
+      )
+    ''');
+
     // Insertar datos por defecto
     await _insertDefaultData(db);
   }
@@ -226,14 +239,39 @@ class DatabaseHelper {
     // Insertar asignaturas por defecto
     final asignaturas = [
       {'nombre': 'TAC', 'codigo': 'TAC', 'horas': 2, 'cualitativo': 1},
-      {'nombre': 'Derecho & Dignidad de la Mujer', 'codigo': 'DDM', 'horas': 1, 'cualitativo': 1},
-      {'nombre': 'Creciendo en Valores', 'codigo': 'CV', 'horas': 1, 'cualitativo': 1},
+      {
+        'nombre': 'Derecho & Dignidad de la Mujer',
+        'codigo': 'DDM',
+        'horas': 1,
+        'cualitativo': 1
+      },
+      {
+        'nombre': 'Creciendo en Valores',
+        'codigo': 'CV',
+        'horas': 1,
+        'cualitativo': 1
+      },
       {'nombre': 'AEP', 'codigo': 'AEP', 'horas': 1, 'cualitativo': 1},
       {'nombre': 'Matemática', 'codigo': 'MAT', 'horas': 4, 'cualitativo': 0},
-      {'nombre': 'Lengua & Literatura', 'codigo': 'LEL', 'horas': 4, 'cualitativo': 0},
+      {
+        'nombre': 'Lengua & Literatura',
+        'codigo': 'LEL',
+        'horas': 4,
+        'cualitativo': 0
+      },
       {'nombre': 'Inglés', 'codigo': 'ING', 'horas': 2, 'cualitativo': 0},
-      {'nombre': 'Ciencias Sociales', 'codigo': 'CS', 'horas': 2, 'cualitativo': 0},
-      {'nombre': 'Ciencias Naturales', 'codigo': 'CN', 'horas': 2, 'cualitativo': 0},
+      {
+        'nombre': 'Ciencias Sociales',
+        'codigo': 'CS',
+        'horas': 2,
+        'cualitativo': 0
+      },
+      {
+        'nombre': 'Ciencias Naturales',
+        'codigo': 'CN',
+        'horas': 2,
+        'cualitativo': 0
+      },
     ];
 
     for (final asignatura in asignaturas) {
@@ -304,20 +342,50 @@ class DatabaseHelper {
     if (oldVersion < 3) {
       // Agregar relación con año lectivo a las tablas de evaluación
       // Primero obtener el ID del año lectivo por defecto
-      final defaultAnioResult = await db.query('anos_lectivos', where: 'porDefecto = ?', whereArgs: [1]);
-      final defaultAnioId = defaultAnioResult.isNotEmpty ? defaultAnioResult.first['id'] as int : 1;
+      final defaultAnioResult = await db
+          .query('anos_lectivos', where: 'porDefecto = ?', whereArgs: [1]);
+      final defaultAnioId = defaultAnioResult.isNotEmpty
+          ? defaultAnioResult.first['id'] as int
+          : 1;
 
       // Agregar columnas anio_lectivo_id a las tablas existentes usando valores literales
-      await db.execute('ALTER TABLE cortes_evaluativos ADD COLUMN anio_lectivo_id INTEGER NOT NULL DEFAULT $defaultAnioId');
-      await db.execute('ALTER TABLE indicadores_evaluacion ADD COLUMN anio_lectivo_id INTEGER NOT NULL DEFAULT $defaultAnioId');
-      await db.execute('ALTER TABLE criterios_evaluacion ADD COLUMN anio_lectivo_id INTEGER NOT NULL DEFAULT $defaultAnioId');
+      await db.execute(
+          'ALTER TABLE cortes_evaluativos ADD COLUMN anio_lectivo_id INTEGER NOT NULL DEFAULT $defaultAnioId');
+      await db.execute(
+          'ALTER TABLE indicadores_evaluacion ADD COLUMN anio_lectivo_id INTEGER NOT NULL DEFAULT $defaultAnioId');
+      await db.execute(
+          'ALTER TABLE criterios_evaluacion ADD COLUMN anio_lectivo_id INTEGER NOT NULL DEFAULT $defaultAnioId');
 
       // Crear cortes por defecto para el año lectivo por defecto
       final cortesDefault = [
-        {'anio_lectivo_id': defaultAnioId, 'numero': 1, 'nombre': '1er Corte', 'puntosTotales': 100, 'activo': 1},
-        {'anio_lectivo_id': defaultAnioId, 'numero': 2, 'nombre': '2do Corte', 'puntosTotales': 100, 'activo': 1},
-        {'anio_lectivo_id': defaultAnioId, 'numero': 3, 'nombre': '3er Corte', 'puntosTotales': 100, 'activo': 1},
-        {'anio_lectivo_id': defaultAnioId, 'numero': 4, 'nombre': '4to Corte', 'puntosTotales': 100, 'activo': 1},
+        {
+          'anio_lectivo_id': defaultAnioId,
+          'numero': 1,
+          'nombre': '1er Corte',
+          'puntosTotales': 100,
+          'activo': 1
+        },
+        {
+          'anio_lectivo_id': defaultAnioId,
+          'numero': 2,
+          'nombre': '2do Corte',
+          'puntosTotales': 100,
+          'activo': 1
+        },
+        {
+          'anio_lectivo_id': defaultAnioId,
+          'numero': 3,
+          'nombre': '3er Corte',
+          'puntosTotales': 100,
+          'activo': 1
+        },
+        {
+          'anio_lectivo_id': defaultAnioId,
+          'numero': 4,
+          'nombre': '4to Corte',
+          'puntosTotales': 100,
+          'activo': 1
+        },
       ];
 
       for (final corte in cortesDefault) {
@@ -326,9 +394,12 @@ class DatabaseHelper {
 
       // Agregar restricciones de unicidad
       try {
-        await db.execute('CREATE UNIQUE INDEX idx_cortes_anio_numero ON cortes_evaluativos(anio_lectivo_id, numero)');
-        await db.execute('CREATE UNIQUE INDEX idx_indicadores_anio_corte_numero ON indicadores_evaluacion(anio_lectivo_id, corteId, numero)');
-        await db.execute('CREATE UNIQUE INDEX idx_criterios_anio_indicador_numero ON criterios_evaluacion(anio_lectivo_id, indicadorId, numero)');
+        await db.execute(
+            'CREATE UNIQUE INDEX idx_cortes_anio_numero ON cortes_evaluativos(anio_lectivo_id, numero)');
+        await db.execute(
+            'CREATE UNIQUE INDEX idx_indicadores_anio_corte_numero ON indicadores_evaluacion(anio_lectivo_id, corteId, numero)');
+        await db.execute(
+            'CREATE UNIQUE INDEX idx_criterios_anio_indicador_numero ON criterios_evaluacion(anio_lectivo_id, indicadorId, numero)');
       } catch (e) {
         // Ignorar errores si los índices ya existen
       }
@@ -347,7 +418,8 @@ class DatabaseHelper {
       // Migrar de columnas 'nombre' y 'apellido' a columna 'estudiante'
       try {
         // Primero agregar la nueva columna
-        await db.execute('ALTER TABLE estudiantes ADD COLUMN estudiante_temp TEXT');
+        await db
+            .execute('ALTER TABLE estudiantes ADD COLUMN estudiante_temp TEXT');
 
         // Migrar los datos existentes combinando nombre y apellido
         await db.execute('''
@@ -361,7 +433,8 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE estudiantes DROP COLUMN apellido');
 
         // Renombrar la columna temporal
-        await db.execute('ALTER TABLE estudiantes RENAME COLUMN estudiante_temp TO estudiante');
+        await db.execute(
+            'ALTER TABLE estudiantes RENAME COLUMN estudiante_temp TO estudiante');
 
         // Hacer la columna NOT NULL
         await db.execute('''
@@ -387,16 +460,32 @@ class DatabaseHelper {
         // Reemplazar la tabla antigua
         await db.execute('DROP TABLE estudiantes');
         await db.execute('ALTER TABLE estudiantes_new RENAME TO estudiantes');
-
       } catch (e) {
         print('Error durante migración a estudiante único: $e');
         // Si hay error, intentar crear la columna estudiante si no existe
         try {
-          await db.execute('ALTER TABLE estudiantes ADD COLUMN estudiante TEXT NOT NULL DEFAULT \'\'');
+          await db.execute(
+              'ALTER TABLE estudiantes ADD COLUMN estudiante TEXT NOT NULL DEFAULT \'\'');
         } catch (e2) {
           // Ignorar si ya existe
         }
       }
+    }
+
+    if (oldVersion < 6) {
+      // Agregar tabla de notas de estudiantes
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS notas_estudiantes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          estudiante_id INTEGER NOT NULL,
+          criterio_id INTEGER NOT NULL,
+          valor_cualitativo TEXT,
+          puntos_obtenidos REAL NOT NULL,
+          FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id),
+          FOREIGN KEY (criterio_id) REFERENCES criterios_evaluacion(id),
+          UNIQUE(estudiante_id, criterio_id)
+        )
+      ''');
     }
   }
 }

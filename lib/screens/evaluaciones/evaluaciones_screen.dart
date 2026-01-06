@@ -181,7 +181,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
 
       if (asignaturaProvider.selectedAsignatura == null ||
           anioProvider.selectedAnio == null) {
-        String msg = asignaturaProvider.selectedAsignatura == null
+        final String msg = asignaturaProvider.selectedAsignatura == null
             ? 'asignatura'
             : 'año lectivo';
         if (mounted) {

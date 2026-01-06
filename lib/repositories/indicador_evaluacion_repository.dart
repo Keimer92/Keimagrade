@@ -1,5 +1,6 @@
 import '../database/database_helper.dart';
 import '../models/indicador_evaluacion.dart';
+import '../models/criterio_evaluacion.dart';
 
 class IndicadorEvaluacionRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -7,7 +8,21 @@ class IndicadorEvaluacionRepository {
   Future<List<IndicadorEvaluacion>> obtenerTodos() async {
     final db = await _dbHelper.database;
     final maps = await db.query('indicadores_evaluacion');
-    return List.generate(maps.length, (i) => IndicadorEvaluacion.fromMap(maps[i]));
+    final indicators =
+        List.generate(maps.length, (i) => IndicadorEvaluacion.fromMap(maps[i]));
+
+    for (var i = 0; i < indicators.length; i++) {
+      final criteriaMaps = await db.query(
+        'criterios_evaluacion',
+        where: 'indicadorId = ? AND activo = 1',
+        whereArgs: [indicators[i].id],
+      );
+      indicators[i] = indicators[i].copyWith(
+        criterios:
+            criteriaMaps.map(CriterioEvaluacion.fromMap).toList(),
+      );
+    }
+    return indicators;
   }
 
   Future<List<IndicadorEvaluacion>> obtenerPorCorte(int corteId) async {
@@ -17,7 +32,21 @@ class IndicadorEvaluacionRepository {
       where: 'corteId = ?',
       whereArgs: [corteId],
     );
-    return List.generate(maps.length, (i) => IndicadorEvaluacion.fromMap(maps[i]));
+    final indicators =
+        List.generate(maps.length, (i) => IndicadorEvaluacion.fromMap(maps[i]));
+
+    for (var i = 0; i < indicators.length; i++) {
+      final criteriaMaps = await db.query(
+        'criterios_evaluacion',
+        where: 'indicadorId = ? AND activo = 1',
+        whereArgs: [indicators[i].id],
+      );
+      indicators[i] = indicators[i].copyWith(
+        criterios:
+            criteriaMaps.map(CriterioEvaluacion.fromMap).toList(),
+      );
+    }
+    return indicators;
   }
 
   Future<List<IndicadorEvaluacion>> obtenerActivos() async {
@@ -27,7 +56,8 @@ class IndicadorEvaluacionRepository {
       where: 'activo = ?',
       whereArgs: [1],
     );
-    return List.generate(maps.length, (i) => IndicadorEvaluacion.fromMap(maps[i]));
+    return List.generate(
+        maps.length, (i) => IndicadorEvaluacion.fromMap(maps[i]));
   }
 
   Future<IndicadorEvaluacion?> obtenerPorId(int id) async {

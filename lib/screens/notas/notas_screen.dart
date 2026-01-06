@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/nota.dart';
 import '../../models/nota_detalle.dart';
-import '../../models/corte_evaluativo.dart';
 import '../../models/estudiante.dart';
 import '../../models/indicador_evaluacion.dart';
 import '../../providers/anio_lectivo_provider.dart';
@@ -31,13 +30,11 @@ class _NotasScreenState extends State<NotasScreen> {
   void initState() {
     super.initState();
     Future.microtask(() async {
-      await context.read<NotasProvider>().cargarNotas();
       await context.read<AnioLectivoProvider>().cargarAnios();
       await context.read<ColegioProvider>().cargarColegios();
       await context.read<AsignaturaProvider>().cargarAsignaturas();
       await context.read<GradoProvider>().cargarGrados();
       await context.read<SeccionProvider>().cargarSecciones();
-      await context.read<CorteEvaluativoProvider>().cargarCortes();
 
       // Forzar selección de año por defecto e iniciar cascada total
       if (mounted) {
@@ -127,13 +124,14 @@ class _NotasScreenState extends State<NotasScreen> {
     final gradoProvider = context.read<GradoProvider>();
     final seccionProvider = context.read<SeccionProvider>();
 
-    // 1. Seleccionar automáticamente el primer Corte Evaluativo disponible
-    final cortesDisponibles =
-        await notasProvider.obtenerCortesDisponibles(anioLectivoId);
-    if (cortesDisponibles.isNotEmpty) {
-      final corteProvider = context.read<CorteEvaluativoProvider>();
-      final indProvider = context.read<IndicadorEvaluacionProvider>();
+    // 1. Cargar y seleccionar automáticamente el primer Corte Evaluativo disponible
+    final corteProvider = context.read<CorteEvaluativoProvider>();
+    final indProvider = context.read<IndicadorEvaluacionProvider>();
 
+    await corteProvider.cargarCortesPorAnio(anioLectivoId);
+    final cortesDisponibles = corteProvider.cortes;
+
+    if (cortesDisponibles.isNotEmpty) {
       // Seleccionar el primer corte si no hay uno o el actual no es válido
       if (corteProvider.selectedCorte == null ||
           !cortesDisponibles
@@ -324,94 +322,82 @@ class _NotasScreenState extends State<NotasScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Consumer<NotasProvider>(
-                    builder: (context, notasProvider, _) {
-                      final anioLectivoId =
-                          context.read<AnioLectivoProvider>().selectedAnio?.id;
-                      final cortesDisponibles = notasProvider
-                          .obtenerCortesDisponibles(anioLectivoId ?? 1);
-                      return FutureBuilder<List<CorteEvaluativo>>(
-                        future: cortesDisponibles,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const SizedBox(
-                                width: 150,
-                                child:
-                                    Center(child: CircularProgressIndicator()));
-                          }
+                  Consumer<CorteEvaluativoProvider>(
+                    builder: (context, corteProvider, _) {
+                      if (corteProvider.isLoading) {
+                        return const SizedBox(
+                          width: 150,
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
 
-                          final cortesFiltrados = snapshot.data ?? [];
-                          final corteSeleccionado = corteProvider.selectedCorte;
+                      final cortesFiltrados = corteProvider.cortes;
+                      final corteSeleccionado = corteProvider.selectedCorte;
 
-                          return SizedBox(
-                            width: 150,
-                            child: _buildDropdown(
-                              label: 'Corte Evaluativo',
-                              value: corteSeleccionado?.nombre ?? 'Seleccionar',
-                              items: cortesFiltrados
-                                  .map((corte) => corte.nombre)
-                                  .toList(),
-                              onChanged: (value) async {
-                                if (value != null &&
-                                    cortesFiltrados.isNotEmpty) {
-                                  final selectedCorte =
-                                      cortesFiltrados.firstWhere(
-                                    (corte) => corte.nombre == value,
-                                    orElse: () => cortesFiltrados.first,
-                                  );
-                                  corteProvider.seleccionarCorte(selectedCorte);
-                                  notasProvider
-                                      .aplicarFiltroCorte(selectedCorte.id);
+                      return SizedBox(
+                        width: 150,
+                        child: _buildDropdown(
+                          label: 'Corte Evaluativo',
+                          value: corteSeleccionado?.nombre ?? 'Seleccionar',
+                          items: cortesFiltrados
+                              .map((corte) => corte.nombre)
+                              .toList(),
+                          onChanged: (value) async {
+                            if (value != null && cortesFiltrados.isNotEmpty) {
+                              final selectedCorte = cortesFiltrados.firstWhere(
+                                (corte) => corte.nombre == value,
+                                orElse: () => cortesFiltrados.first,
+                              );
+                              corteProvider.seleccionarCorte(selectedCorte);
+                              context
+                                  .read<NotasProvider>()
+                                  .aplicarFiltroCorte(selectedCorte.id);
 
-                                  // Load indicators for the selected corte
-                                  await context
-                                      .read<IndicadorEvaluacionProvider>()
-                                      .cargarIndicadoresPorCorte(
-                                          selectedCorte.id!);
+                              // Load indicators for the selected corte
+                              await context
+                                  .read<IndicadorEvaluacionProvider>()
+                                  .cargarIndicadoresPorCorte(selectedCorte.id!);
 
-                                  // If all filters are now complete, apply them to EstudianteProvider for the table
-                                  final anioId = context
-                                      .read<AnioLectivoProvider>()
-                                      .selectedAnio
-                                      ?.id;
-                                  final colegioId = context
-                                      .read<ColegioProvider>()
-                                      .selectedColegio
-                                      ?.id;
-                                  final asignaturaId = context
-                                      .read<AsignaturaProvider>()
-                                      .selectedAsignatura
-                                      ?.id;
-                                  final gradoId = context
-                                      .read<GradoProvider>()
-                                      .selectedGrado
-                                      ?.id;
-                                  final seccionId = context
-                                      .read<SeccionProvider>()
-                                      .selectedSeccion
-                                      ?.id;
+                              // If all filters are now complete, apply them to EstudianteProvider for the table
+                              final anioId = context
+                                  .read<AnioLectivoProvider>()
+                                  .selectedAnio
+                                  ?.id;
+                              final colegioId = context
+                                  .read<ColegioProvider>()
+                                  .selectedColegio
+                                  ?.id;
+                              final asignaturaId = context
+                                  .read<AsignaturaProvider>()
+                                  .selectedAsignatura
+                                  ?.id;
+                              final gradoId = context
+                                  .read<GradoProvider>()
+                                  .selectedGrado
+                                  ?.id;
+                              final seccionId = context
+                                  .read<SeccionProvider>()
+                                  .selectedSeccion
+                                  ?.id;
 
-                                  if (anioId != null &&
-                                      colegioId != null &&
-                                      asignaturaId != null &&
-                                      gradoId != null &&
-                                      seccionId != null) {
-                                    context
-                                        .read<EstudianteProvider>()
-                                        .aplicarFiltros(
-                                          anioLectivoId: anioId,
-                                          colegioId: colegioId,
-                                          asignaturaId: asignaturaId,
-                                          gradoId: gradoId,
-                                          seccionId: seccionId,
-                                        );
-                                  }
-                                }
-                              },
-                            ),
-                          );
-                        },
+                              if (anioId != null &&
+                                  colegioId != null &&
+                                  asignaturaId != null &&
+                                  gradoId != null &&
+                                  seccionId != null) {
+                                context
+                                    .read<EstudianteProvider>()
+                                    .aplicarFiltros(
+                                      anioLectivoId: anioId,
+                                      colegioId: colegioId,
+                                      asignaturaId: asignaturaId,
+                                      gradoId: gradoId,
+                                      seccionId: seccionId,
+                                    );
+                              }
+                            }
+                          },
+                        ),
                       );
                     },
                   ),
@@ -583,7 +569,8 @@ class _NotasScreenState extends State<NotasScreen> {
     required Function(String?) onChanged,
   }) =>
       DropdownButtonFormField<String>(
-        value: value != 'Seleccionar' && items.contains(value) ? value : null,
+        initialValue:
+            value != 'Seleccionar' && items.contains(value) ? value : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -837,10 +824,14 @@ class _NotasScreenState extends State<NotasScreen> {
         },
       );
 
-  Widget _buildEditableGradesTable() => Consumer4<NotasProvider,
-          AsignaturaProvider, EstudianteProvider, IndicadorEvaluacionProvider>(
+  Widget _buildEditableGradesTable() => Consumer5<
+          NotasProvider,
+          AsignaturaProvider,
+          EstudianteProvider,
+          IndicadorEvaluacionProvider,
+          GradoProvider>(
         builder: (context, notasProvider, asignaturaProvider,
-            estudianteProvider, indicadorProvider, _) {
+            estudianteProvider, indicadorProvider, gradoProvider, _) {
           if (notasProvider.isLoading ||
               estudianteProvider.isLoading ||
               indicadorProvider.isLoading) {
@@ -909,13 +900,35 @@ class _NotasScreenState extends State<NotasScreen> {
                     children: [
                       ..._buildEditableTableHeadersWithConfig(
                           indicadorProvider.indicadores),
-                      ...estudiantesFiltrados.map((estudiante) =>
-                          _buildEditableTableRowWithConfig(
-                              estudiante,
-                              asignaturaProvider
-                                      .selectedAsignatura?.cualitativo ??
-                                  false,
-                              indicadorProvider.indicadores)),
+                      ...estudiantesFiltrados.map((estudiante) {
+                        final notaDetalle =
+                            notasProvider.notasDetalladas.firstWhere(
+                          (n) => n.estudianteId == estudiante.id,
+                          orElse: () => _crearNotaVacia(
+                            estudiante,
+                            indicadorProvider.indicadores,
+                            context
+                                .read<CorteEvaluativoProvider>()
+                                .selectedCorte!
+                                .id!,
+                            context
+                                .read<CorteEvaluativoProvider>()
+                                .selectedCorte!
+                                .nombre,
+                          ),
+                        );
+
+                        final esCualitativaAsignatura = asignaturaProvider
+                                .selectedAsignatura?.cualitativo ??
+                            false;
+                        final esCualitativoGrado =
+                            gradoProvider.selectedGrado?.cualitativo ?? false;
+
+                        return _buildEditableTableRowWithConfig(estudiante,
+                            esCualitativaAsignatura, notaDetalle.indicadores,
+                            soloCualitativo:
+                                esCualitativaAsignatura || esCualitativoGrado);
+                      }),
                     ],
                   ),
                 ),
@@ -1674,7 +1687,8 @@ class _NotasScreenState extends State<NotasScreen> {
   }
 
   TableRow _buildEditableTableRowWithConfig(Estudiante estudiante,
-      bool esCualitativa, List<IndicadorEvaluacion> indicadores) {
+      bool esCualitativa, List<IndicadorDetalle> indicadores,
+      {bool soloCualitativo = false}) {
     final rowCells = <TableCell>[];
 
     // Student name cell
@@ -1704,35 +1718,79 @@ class _NotasScreenState extends State<NotasScreen> {
     int totalPuntos = 0;
 
     for (final indicador in indicadores) {
-      int indicadorTotal = 0;
+      double indicadorTotal = 0;
 
       // 3 criteria cells per indicator
       for (int criterioIndex = 0; criterioIndex < 3; criterioIndex++) {
+        final criterio = indicador.criterios.length > criterioIndex
+            ? indicador.criterios[criterioIndex]
+            : null;
+
         if (esCualitativa) {
-          // For qualitative subjects, show dropdown or simple input
+          final String? valorActual = criterio?.valorCualitativo;
+
           rowCells.add(TableCell(
             child: Padding(
               padding: const EdgeInsets.all(2),
               child: SizedBox(
-                height: 30,
-                child: TextFormField(
-                  initialValue: '0',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 12, color: AppTheme.textPrimary),
+                height: 38,
+                child: DropdownButtonFormField<String>(
+                  initialValue: valorActual,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 4),
                     isDense: true,
                   ),
-                  onChanged: (value) {
-                    // Handle qualitative input (A, B, C, etc.)
-                  },
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textPrimary,
+                      fontWeight: FontWeight.bold),
+                  items: ['AA', 'AS', 'AF', 'AI']
+                      .map((String value) => DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value,
+                                style: TextStyle(color: _getSiglaColor(value))),
+                          ))
+                      .toList(),
+                  onChanged: criterio == null
+                      ? null
+                      : (newValue) async {
+                          if (newValue != null) {
+                            final puntosMaximos = criterio.puntosMaximos;
+                            double factor = 0;
+                            switch (newValue) {
+                              case 'AA':
+                                factor = 1.0;
+                                break;
+                              case 'AS':
+                                factor = 0.8;
+                                break;
+                              case 'AF':
+                                factor = 0.6;
+                                break;
+                              case 'AI':
+                                factor = 0.4;
+                                break;
+                            }
+                            final nuevosPuntos = factor * puntosMaximos;
+
+                            await context
+                                .read<NotasProvider>()
+                                .guardarNotaManual(
+                                  estudianteId: estudiante.id!,
+                                  criterioId: criterio.id,
+                                  valorCualitativo: newValue,
+                                  puntosObtenidos: nuevosPuntos,
+                                );
+                          }
+                        },
                 ),
               ),
             ),
           ));
+          if (criterio != null) {
+            indicadorTotal += criterio.puntosObtenidos;
+          }
         } else {
           // For quantitative subjects, show numeric input
           rowCells.add(TableCell(
@@ -1741,7 +1799,8 @@ class _NotasScreenState extends State<NotasScreen> {
               child: SizedBox(
                 height: 30,
                 child: TextFormField(
-                  initialValue: '0',
+                  initialValue: criterio?.puntosObtenidos.toString() ?? '0',
+                  enabled: criterio != null,
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
@@ -1752,15 +1811,24 @@ class _NotasScreenState extends State<NotasScreen> {
                         EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                     isDense: true,
                   ),
-                  onChanged: (value) {
-                    final puntos = int.tryParse(value) ?? 0;
-                    indicadorTotal += puntos;
-                    // Update total calculations
+                  onChanged: (value) async {
+                    if (criterio != null) {
+                      final nuevosPuntos = double.tryParse(value) ?? 0;
+                      await context.read<NotasProvider>().guardarNotaManual(
+                            estudianteId: estudiante.id!,
+                            criterioId: criterio.id,
+                            valorCualitativo: '',
+                            puntosObtenidos: nuevosPuntos,
+                          );
+                    }
                   },
                 ),
               ),
             ),
           ));
+          if (criterio != null) {
+            indicadorTotal += criterio.puntosObtenidos;
+          }
         }
       }
 
@@ -1768,9 +1836,13 @@ class _NotasScreenState extends State<NotasScreen> {
       rowCells.add(TableCell(
         child: Container(
           padding: const EdgeInsets.all(4),
-          color: _getScoreColor(indicadorTotal, 20), // Max per indicator
+          color: soloCualitativo
+              ? Colors.transparent
+              : _getScoreColor(indicadorTotal.round(), indicador.totalMaximo),
           child: Text(
-            '$indicadorTotal/20',
+            soloCualitativo
+                ? '-/${indicador.totalMaximo}'
+                : '${indicadorTotal.toInt()}/${indicador.totalMaximo}',
             style: const TextStyle(
                 fontSize: 12,
                 color: AppTheme.textPrimary,
@@ -1780,18 +1852,24 @@ class _NotasScreenState extends State<NotasScreen> {
         ),
       ));
 
-      totalPuntos += indicadorTotal;
+      totalPuntos += indicadorTotal.toInt();
     }
 
     // Total points cell
+    final String calificacionFinal = soloCualitativo
+        ? _calcularModa(indicadores)
+        : _calculateGrade(totalPuntos, esCualitativa);
+
     rowCells.add(TableCell(
       child: Container(
         padding: const EdgeInsets.all(8),
-        color: _getScoreColor(totalPuntos, 100), // Max total
+        color: soloCualitativo
+            ? Colors.transparent
+            : _getScoreColor(totalPuntos, 100), // Max total
         child: Column(
           children: [
             Text(
-              '$totalPuntos/100',
+              soloCualitativo ? '-/100' : '$totalPuntos/100',
               style: const TextStyle(
                   fontSize: 14,
                   color: AppTheme.textPrimary,
@@ -1802,12 +1880,11 @@ class _NotasScreenState extends State<NotasScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: _getCalificacionColor(
-                    _calculateGrade(totalPuntos, esCualitativa)),
+                color: _getCalificacionColor(calificacionFinal),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                _calculateGrade(totalPuntos, esCualitativa),
+                calificacionFinal,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 10,
@@ -1823,5 +1900,93 @@ class _NotasScreenState extends State<NotasScreen> {
     return TableRow(
       children: rowCells,
     );
+  }
+
+  Color _getSiglaColor(String sigla) {
+    switch (sigla) {
+      case 'AA':
+        return Colors.green.shade700;
+      case 'AS':
+        return Colors.blue.shade700;
+      case 'AF':
+        return Colors.orange.shade800;
+      case 'AI':
+        return Colors.red.shade700;
+      default:
+        return AppTheme.textPrimary;
+    }
+  }
+
+  NotaDetalle _crearNotaVacia(Estudiante estudiante,
+      List<IndicadorEvaluacion> indicadores, int corteId, String corteNombre) {
+    final nombres = estudiante.nombreCompleto.split(' ');
+    final nombre = nombres.isNotEmpty ? nombres[0] : '';
+    final apellido = nombres.length > 1 ? nombres.sublist(1).join(' ') : '';
+
+    return NotaDetalle(
+      estudianteId: estudiante.id!,
+      estudianteNombre: nombre,
+      estudianteApellido: apellido,
+      numeroIdentidad: estudiante.numeroIdentidad,
+      corteId: corteId,
+      corteNombre: corteNombre,
+      totalPuntos: 0,
+      totalMaximo: 100,
+      porcentaje: 0,
+      calificacion: '-',
+      indicadores: indicadores
+          .map((i) => IndicadorDetalle(
+                id: i.id!,
+                numero: i.numero,
+                descripcion: i.descripcion,
+                totalPuntos: 0,
+                totalMaximo: i.puntosTotales,
+                criterios: i.criterios
+                    .map((c) => CriterioDetalle(
+                          id: c.id!,
+                          numero: c.numero,
+                          descripcion: c.descripcion,
+                          puntosMaximos: c.puntosMaximos,
+                          puntosObtenidos: c.puntosObtenidos,
+                          valorCualitativo: c.valorCualitativo,
+                        ))
+                    .toList(),
+              ))
+          .toList(),
+    );
+  }
+
+  String _calcularModa(List<IndicadorDetalle> indicadores) {
+    final Map<String, int> frecuencias = {};
+    for (final ind in indicadores) {
+      for (final cri in ind.criterios) {
+        if (cri.valorCualitativo != null && cri.valorCualitativo!.isNotEmpty) {
+          frecuencias[cri.valorCualitativo!] =
+              (frecuencias[cri.valorCualitativo!] ?? 0) + 1;
+        }
+      }
+    }
+
+    if (frecuencias.isEmpty) return '-';
+
+    String moda = '-';
+    int maxFrecuencia = 0;
+
+    // Ordered list of priority if frequency is equal (AA > AS > AF > AI)
+    final priority = ['AA', 'AS', 'AF', 'AI'];
+
+    frecuencias.forEach((sigla, freq) {
+      if (freq > maxFrecuencia) {
+        maxFrecuencia = freq;
+        moda = sigla;
+      } else if (freq == maxFrecuencia) {
+        // Tie-breaker: use priority (highest grade)
+        if (priority.indexOf(sigla) < priority.indexOf(moda)) {
+          moda = sigla;
+        }
+      }
+    });
+
+    return moda;
   }
 }

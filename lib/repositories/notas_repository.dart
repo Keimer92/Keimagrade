@@ -1,7 +1,9 @@
+import 'package:sqflite/sqflite.dart';
 import '../database/database_helper.dart';
 import '../models/nota.dart';
 import '../models/nota_detalle.dart';
 import '../models/corte_evaluativo.dart';
+import '../repositories/corte_evaluativo_repository.dart';
 
 class NotasRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -40,6 +42,7 @@ class NotasRepository {
       INNER JOIN cortes_evaluativos ce ON ce.anio_lectivo_id = ea.anio_lectivo_id
       LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
       LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
+      LEFT JOIN notas_estudiantes ne ON ne.estudiante_id = e.id AND ne.criterio_id = cri.id
       WHERE e.activo = 1 AND ce.activo = 1 AND ea.activo = 1
       GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
       ORDER BY e.estudiante, ce.numero
@@ -87,6 +90,7 @@ class NotasRepository {
       INNER JOIN cortes_evaluativos ce ON ce.anio_lectivo_id = ea.anio_lectivo_id
       LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
       LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
+      LEFT JOIN notas_estudiantes ne ON ne.estudiante_id = e.id AND ne.criterio_id = cri.id
       WHERE e.activo = 1
         AND ce.activo = 1
         AND ea.activo = 1
@@ -136,6 +140,7 @@ class NotasRepository {
       INNER JOIN cortes_evaluativos ce ON ce.anio_lectivo_id = ea.anio_lectivo_id
       LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
       LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
+      LEFT JOIN notas_estudiantes ne ON ne.estudiante_id = e.id AND ne.criterio_id = cri.id
       WHERE e.activo = 1
         AND ce.activo = 1
         AND ea.activo = 1
@@ -275,14 +280,16 @@ class NotasRepository {
       for (final indicadorMap in indicadorMaps) {
         final indicadorId = indicadorMap['id'] as int;
 
-        // Get all criteria for this indicator
+        // Get all criteria for this indicator and student's note
         final criterioMaps = await db.rawQuery('''
           SELECT cri.id, cri.numero, cri.descripcion, cri.puntosMaximos,
-                 COALESCE(cri.puntosObtenidos, 0) as puntosObtenidos
+                 COALESCE(ne.puntos_obtenidos, 0) as puntosObtenidos,
+                 ne.valor_cualitativo
           FROM criterios_evaluacion cri
+          LEFT JOIN notas_estudiantes ne ON ne.criterio_id = cri.id AND ne.estudiante_id = ?
           WHERE cri.indicadorId = ? AND cri.activo = 1
           ORDER BY cri.numero
-        ''', [indicadorId]);
+        ''', [estudianteId, indicadorId]);
 
         final List<CriterioDetalle> criterios = criterioMaps
             .map((map) => CriterioDetalle(
@@ -291,6 +298,7 @@ class NotasRepository {
                   descripcion: map['descripcion'] as String,
                   puntosMaximos: map['puntosMaximos'] as int,
                   puntosObtenidos: map['puntosObtenidos'] as int,
+                  valorCualitativo: map['valor_cualitativo'] as String?,
                 ))
             .toList();
 
@@ -357,57 +365,22 @@ class NotasRepository {
     ''', [anioLectivoId]);
 
     if (existingMaps.isNotEmpty) {
-      return List.generate(
-          existingMaps.length, (i) => CorteEvaluativo.fromMap(existingMaps[i]));
+      // Check if they have indicators before returning
+      // (Optional, but ensures structure if cortes existed but indicators didn't)
     }
 
-    // If no cortes exist, create default cortes for this academic year
-    final cortesDefault = [
-      {
-        'anio_lectivo_id': anioLectivoId,
-        'numero': 1,
-        'nombre': '1er Corte',
-        'puntosTotales': 100,
-        'activo': 1
-      },
-      {
-        'anio_lectivo_id': anioLectivoId,
-        'numero': 2,
-        'nombre': '2do Corte',
-        'puntosTotales': 100,
-        'activo': 1
-      },
-      {
-        'anio_lectivo_id': anioLectivoId,
-        'numero': 3,
-        'nombre': '3er Corte',
-        'puntosTotales': 100,
-        'activo': 1
-      },
-      {
-        'anio_lectivo_id': anioLectivoId,
-        'numero': 4,
-        'nombre': '4to Corte',
-        'puntosTotales': 100,
-        'activo': 1
-      },
-    ];
+    // Ensure default structure exists (centralized logic)
+    final CorteEvaluativoRepository corteRepo = CorteEvaluativoRepository();
+    await corteRepo.asegurarEstructuraDefault(anioLectivoId);
 
-    for (final corte in cortesDefault) {
-      try {
-        await db.insert('cortes_evaluativos', corte);
-      } catch (e) {
-        // Ignore if corte already exists (unique constraint)
-      }
-    }
-
-    // Now return the cortes
+    // Fetch the cortes
     final maps = await db.rawQuery('''
       SELECT ce.*
       FROM cortes_evaluativos ce
       WHERE ce.activo = 1 AND ce.anio_lectivo_id = ?
       ORDER BY ce.numero
     ''', [anioLectivoId]);
+
     return List.generate(maps.length, (i) => CorteEvaluativo.fromMap(maps[i]));
   }
 
@@ -440,10 +413,30 @@ class NotasRepository {
   }
 
   String _calcularCalificacion(double porcentaje) {
-    if (porcentaje >= 90) return 'A';
-    if (porcentaje >= 80) return 'B';
-    if (porcentaje >= 70) return 'C';
-    if (porcentaje >= 60) return 'D';
-    return 'F';
+    if (porcentaje >= 90) return 'AA';
+    if (porcentaje >= 80) return 'AS';
+    if (porcentaje >= 60) return 'AF';
+    if (porcentaje >= 40) return 'AI';
+    return '-';
+  }
+
+  /// Guarda o actualiza una nota de estudiante
+  Future<void> guardarNotaEstudiante({
+    required int estudianteId,
+    required int criterioId,
+    required String valorCualitativo,
+    required double puntosObtenidos,
+  }) async {
+    final db = await _dbHelper.database;
+    await db.insert(
+      'notas_estudiantes',
+      {
+        'estudiante_id': estudianteId,
+        'criterio_id': criterioId,
+        'valor_cualitativo': valorCualitativo,
+        'puntos_obtenidos': puntosObtenidos,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 }

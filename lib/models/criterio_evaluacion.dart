@@ -1,5 +1,4 @@
 class CriterioEvaluacion {
-
   CriterioEvaluacion({
     required this.id,
     required this.anioLectivoId,
@@ -9,6 +8,7 @@ class CriterioEvaluacion {
     required this.puntosMaximos,
     required this.puntosObtenidos,
     required this.activo,
+    this.valorCualitativo,
   });
 
   factory CriterioEvaluacion.fromMap(Map<String, dynamic> map) =>
@@ -21,6 +21,7 @@ class CriterioEvaluacion {
         puntosMaximos: map['puntosMaximos'] as int,
         puntosObtenidos: map['puntosObtenidos'] as int,
         activo: map['activo'] == 1,
+        valorCualitativo: map['valor_cualitativo'] as String?,
       );
   final int? id;
   final int anioLectivoId;
@@ -30,6 +31,7 @@ class CriterioEvaluacion {
   final int puntosMaximos;
   final int puntosObtenidos;
   final bool activo;
+  final String? valorCualitativo;
 
   Map<String, dynamic> toMap() => {
         'anio_lectivo_id': anioLectivoId,
@@ -39,6 +41,7 @@ class CriterioEvaluacion {
         'puntosMaximos': puntosMaximos,
         'puntosObtenidos': puntosObtenidos,
         'activo': activo ? 1 : 0,
+        'valor_cualitativo': valorCualitativo,
       };
 
   CriterioEvaluacion copyWith({
@@ -50,6 +53,7 @@ class CriterioEvaluacion {
     int? puntosMaximos,
     int? puntosObtenidos,
     bool? activo,
+    String? valorCualitativo,
   }) =>
       CriterioEvaluacion(
         id: id ?? this.id,
@@ -60,5 +64,6 @@ class CriterioEvaluacion {
         puntosMaximos: puntosMaximos ?? this.puntosMaximos,
         puntosObtenidos: puntosObtenidos ?? this.puntosObtenidos,
         activo: activo ?? this.activo,
+        valorCualitativo: valorCualitativo ?? this.valorCualitativo,
       );
 }

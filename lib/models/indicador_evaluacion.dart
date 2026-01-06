@@ -1,5 +1,6 @@
-class IndicadorEvaluacion {
+import 'criterio_evaluacion.dart';
 
+class IndicadorEvaluacion {
   IndicadorEvaluacion({
     required this.id,
     required this.anioLectivoId,
@@ -8,6 +9,7 @@ class IndicadorEvaluacion {
     required this.descripcion,
     required this.puntosTotales,
     required this.activo,
+    this.criterios = const [],
   });
 
   factory IndicadorEvaluacion.fromMap(Map<String, dynamic> map) =>
@@ -27,6 +29,7 @@ class IndicadorEvaluacion {
   final String descripcion;
   final int puntosTotales;
   final bool activo;
+  final List<CriterioEvaluacion> criterios;
 
   Map<String, dynamic> toMap() => {
         'anio_lectivo_id': anioLectivoId,
@@ -45,6 +48,7 @@ class IndicadorEvaluacion {
     String? descripcion,
     int? puntosTotales,
     bool? activo,
+    List<CriterioEvaluacion>? criterios,
   }) =>
       IndicadorEvaluacion(
         id: id ?? this.id,
@@ -54,5 +58,6 @@ class IndicadorEvaluacion {
         descripcion: descripcion ?? this.descripcion,
         puntosTotales: puntosTotales ?? this.puntosTotales,
         activo: activo ?? this.activo,
+        criterios: criterios ?? this.criterios,
       );
 }
