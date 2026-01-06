@@ -27,6 +27,7 @@ class NotasScreen extends StatefulWidget {
 class _NotasScreenState extends State<NotasScreen>
     with AutomaticKeepAliveClientMixin {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   final Map<String, FocusNode> _focusNodes = {};
   final Map<String, TextEditingController> _controllers = {};
 
@@ -57,6 +58,7 @@ class _NotasScreenState extends State<NotasScreen>
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     for (var node in _focusNodes.values) {
       node.dispose();
     }
@@ -154,25 +156,6 @@ class _NotasScreenState extends State<NotasScreen>
           _buildContent(),
         ],
       ),
-      floatingActionButton: corteProvider.selectedCorte != null
-          ? FloatingActionButton.extended(
-              onPressed: () async {
-                await context.read<NotasProvider>().cargarNotasDetalladas();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content:
-                          Text('Notas sincronizadas y guardadas correctamente'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-              label: const Text('Guardar Notas'),
-              icon: const Icon(Icons.save),
-              backgroundColor: AppTheme.primaryColor,
-            )
-          : null,
     );
   }
 
@@ -335,6 +318,22 @@ class _NotasScreenState extends State<NotasScreen>
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
+                  Consumer<NotasProvider>(
+                    builder: (context, provider, _) {
+                      if (provider.tieneFiltrosActivos) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: IconButton(
+                            onPressed: () => provider.limpiarFiltros(),
+                            icon: const Icon(Icons.refresh_rounded, size: 24),
+                            tooltip: 'Limpiar filtros',
+                            color: AppTheme.errorColor,
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                   SizedBox(
                     width: 150,
                     child: _buildDropdown(
@@ -498,33 +497,60 @@ class _NotasScreenState extends State<NotasScreen>
                       },
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  ListenableBuilder(
+                    listenable:
+                        Listenable.merge([_searchController, _searchFocusNode]),
+                    builder: (context, _) {
+                      final hasText = _searchController.text.isNotEmpty;
+                      final hasFocus = _searchFocusNode.hasFocus;
+                      final double width = (hasText || hasFocus) ? 220 : 120;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        width: width,
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          onChanged: (value) {
+                            final provider = context.read<NotasProvider>();
+                            if (provider.todosLosFiltrosCompletosConCorte()) {
+                              provider.buscarDetalladas(value);
+                            } else {
+                              provider.buscar(value);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Buscar...',
+                            prefixIcon: const Icon(Icons.search, size: 20),
+                            suffixIcon: hasText
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear, size: 18),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      final provider =
+                                          context.read<NotasProvider>();
+                                      if (provider
+                                          .todosLosFiltrosCompletosConCorte()) {
+                                        provider.buscarDetalladas('');
+                                      } else {
+                                        provider.buscar('');
+                                      }
+                                    },
+                                  )
+                                : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 8),
+                            isDense: true,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Consumer<NotasProvider>(
-                  builder: (context, provider, _) {
-                    if (provider.tieneFiltrosActivos) {
-                      return TextButton.icon(
-                        onPressed: () => provider.limpiarFiltros(),
-                        icon: const Icon(Icons.clear_all, size: 18),
-                        label: const Text('Limpiar filtros'),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-                FloatingActionButton(
-                  onPressed: _showSearchDialog,
-                  backgroundColor: AppTheme.primaryColor,
-                  mini: true,
-                  tooltip: 'Buscar estudiante',
-                  child: const Icon(Icons.search, size: 20),
-                ),
-              ],
             ),
           ],
         ),
@@ -553,63 +579,6 @@ class _NotasScreenState extends State<NotasScreen>
         onChanged: onChanged,
         isExpanded: true,
       );
-
-  void _showSearchDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceColor,
-        title: const Row(
-          children: [
-            Icon(Icons.search, color: AppTheme.primaryColor),
-            SizedBox(width: 8),
-            Text('Buscar Estudiante',
-                style: TextStyle(
-                    color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CustomTextField(
-              label: 'Buscar estudiante',
-              controller: _searchController,
-              hint: 'Nombre o número de identidad',
-              prefixIcon: const Icon(Icons.search),
-              onChanged: (value) {
-                final provider = context.read<NotasProvider>();
-                if (provider.todosLosFiltrosCompletosConCorte()) {
-                  provider.buscarDetalladas(value);
-                } else {
-                  provider.buscar(value);
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cerrar',
-                  style: TextStyle(color: AppTheme.textSecondary))),
-          if (_searchController.text.isNotEmpty)
-            TextButton(
-              onPressed: () {
-                _searchController.clear();
-                final provider = context.read<NotasProvider>();
-                if (provider.todosLosFiltrosCompletosConCorte()) {
-                  provider.buscarDetalladas('');
-                } else {
-                  provider.limpiarBusqueda();
-                }
-              },
-              child: const Text('Limpiar',
-                  style: TextStyle(color: AppTheme.primaryColor)),
-            ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildNotasList() => Consumer<NotasProvider>(
         builder: (context, provider, _) {
@@ -842,45 +811,34 @@ class _NotasScreenState extends State<NotasScreen>
     for (final indicador in indicadores) {
       for (int i = 0; i < 4; i++) {
         firstRowCells.add(TableCell(
-            child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                    indicador.descripcion.isNotEmpty
-                        ? indicador.descripcion
-                        : 'Indicador ${indicador.numero}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                        fontSize: 11),
-                    textAlign: TextAlign.center))));
+            child: Tooltip(
+                message: indicador.descripcion,
+                child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Text('Indicador ${indicador.numero}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                            fontSize: 11),
+                        textAlign: TextAlign.center)))));
       }
-      secondRowCells.add(const TableCell(
-          child: Padding(
-              padding: EdgeInsets.all(2),
-              child: Text('C1',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                      fontSize: 10),
-                  textAlign: TextAlign.center))));
-      secondRowCells.add(const TableCell(
-          child: Padding(
-              padding: EdgeInsets.all(2),
-              child: Text('C2',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                      fontSize: 10),
-                  textAlign: TextAlign.center))));
-      secondRowCells.add(const TableCell(
-          child: Padding(
-              padding: EdgeInsets.all(2),
-              child: Text('C3',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                      fontSize: 10),
-                  textAlign: TextAlign.center))));
+
+      for (int i = 0; i < 3; i++) {
+        final criterio =
+            i < indicador.criterios.length ? indicador.criterios[i] : null;
+
+        secondRowCells.add(TableCell(
+            child: Tooltip(
+                message: criterio?.descripcion ?? 'Criterio ${i + 1}',
+                child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Text('C${i + 1}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                            fontSize: 10),
+                        textAlign: TextAlign.center)))));
+      }
       secondRowCells.add(const TableCell(
           child: Padding(
               padding: EdgeInsets.all(2),

@@ -24,6 +24,7 @@ class EstudiantesScreen extends StatefulWidget {
 
 class _EstudiantesScreenState extends State<EstudiantesScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -56,64 +57,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
-  }
-
-  void _showSearchDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceColor,
-        title: const Row(
-          children: [
-            Icon(Icons.search, color: AppTheme.primaryColor),
-            SizedBox(width: 8),
-            Text(
-              'Buscar Estudiante',
-              style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CustomTextField(
-              label: 'Buscar estudiante',
-              controller: _searchController,
-              hint: 'Nombre o número de identidad',
-              prefixIcon: const Icon(Icons.search),
-              onChanged: (value) {
-                // Trigger rebuild to filter students
-                setState(() {});
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cerrar',
-              style: TextStyle(color: AppTheme.textSecondary),
-            ),
-          ),
-          if (_searchController.text.isNotEmpty)
-            TextButton(
-              onPressed: () {
-                _searchController.clear();
-                setState(() {});
-              },
-              child: const Text(
-                'Limpiar',
-                style: TextStyle(color: AppTheme.primaryColor),
-              ),
-            ),
-        ],
-      ),
-    );
   }
 
   void _showEstudianteDialog({Estudiante? estudiante}) async {
@@ -832,12 +777,6 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
           _buildEstudiantesList(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showSearchDialog,
-        backgroundColor: AppTheme.primaryColor,
-        tooltip: 'Buscar estudiante',
-        child: const Icon(Icons.search),
-      ),
     );
   }
 
@@ -1014,6 +953,23 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
+                        Consumer<EstudianteProvider>(
+                          builder: (context, provider, _) {
+                            if (provider.tieneFiltrosActivos) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 12),
+                                child: IconButton(
+                                  onPressed: () => provider.limpiarFiltros(),
+                                  icon: const Icon(Icons.refresh_rounded,
+                                      size: 24),
+                                  tooltip: 'Limpiar filtros',
+                                  color: AppTheme.errorColor,
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
                         SizedBox(
                           width: 150,
                           child: _buildDropdown(
@@ -1163,6 +1119,49 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                             },
                           ),
                         ),
+                        const SizedBox(width: 12),
+                        ListenableBuilder(
+                          listenable: Listenable.merge(
+                              [_searchController, _searchFocusNode]),
+                          builder: (context, _) {
+                            final hasText = _searchController.text.isNotEmpty;
+                            final hasFocus = _searchFocusNode.hasFocus;
+                            final double width =
+                                (hasText || hasFocus) ? 220 : 120;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              width: width,
+                              child: TextField(
+                                controller: _searchController,
+                                focusNode: _searchFocusNode,
+                                onChanged: (value) {
+                                  setState(() {});
+                                },
+                                decoration: InputDecoration(
+                                  hintText: 'Buscar...',
+                                  prefixIcon:
+                                      const Icon(Icons.search, size: 20),
+                                  suffixIcon: hasText
+                                      ? IconButton(
+                                          icon:
+                                              const Icon(Icons.clear, size: 18),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            setState(() {});
+                                          },
+                                        )
+                                      : null,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 8),
+                                  isDense: true,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -1194,25 +1193,6 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            // Botón para limpiar filtros
-            Consumer<EstudianteProvider>(
-              builder: (context, provider, _) {
-                if (provider.tieneFiltrosActivos) {
-                  return Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        provider.limpiarFiltros();
-                      },
-                      icon: const Icon(Icons.clear_all, size: 18),
-                      label: const Text('Limpiar filtros'),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
           ],
         ),
       );
@@ -1224,7 +1204,8 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     required Function(String?) onChanged,
   }) =>
       DropdownButtonFormField<String>(
-        initialValue: value != 'Seleccionar' && items.contains(value) ? value : null,
+        initialValue:
+            value != 'Seleccionar' && items.contains(value) ? value : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1247,56 +1228,6 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
             .toList(),
         onChanged: onChanged,
         isExpanded: true,
-      );
-
-  Widget _buildSearchAndActions() => Container(
-        padding: const EdgeInsets.all(16),
-        color: AppTheme.backgroundColor,
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: CustomTextField(
-                    label: 'Buscar estudiante',
-                    controller: _searchController,
-                    hint: 'Nombre o número de identidad',
-                    prefixIcon: const Icon(Icons.search),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: _searchController.text.isNotEmpty
-                      ? () {
-                          _searchController.clear();
-                          setState(() {});
-                        }
-                      : null,
-                  color: _searchController.text.isNotEmpty
-                      ? AppTheme.primaryColor
-                      : AppTheme.textTertiary,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _showEstudianteDialog,
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Agregar Estudiante'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _importarDesdeExcel,
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('Importar Excel'),
-                ),
-              ],
-            ),
-          ],
-        ),
       );
 
   Widget _buildEstudiantesList() => Consumer<EstudianteProvider>(
