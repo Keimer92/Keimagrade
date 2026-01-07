@@ -25,6 +25,7 @@ class EstudiantesScreen extends StatefulWidget {
 class _EstudiantesScreenState extends State<EstudiantesScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  String? selectedSexoFilter;
 
   @override
   void initState() {
@@ -747,12 +748,18 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
 
   List<Estudiante> _filtrarEstudiantes(List<Estudiante> estudiantes) {
     final query = _searchController.text.toLowerCase();
-    if (query.isEmpty) return estudiantes;
 
     return estudiantes.where((estudiante) {
-      final nombreCompleto = estudiante.nombreCompleto.toLowerCase();
-      final identidad = estudiante.numeroIdentidad?.toLowerCase() ?? '';
-      return nombreCompleto.contains(query) || identidad.contains(query);
+      // Filter by search query
+      bool matchesSearch = query.isEmpty ||
+          estudiante.nombreCompleto.toLowerCase().contains(query) ||
+          (estudiante.numeroIdentidad?.toLowerCase().contains(query) ?? false);
+
+      // Filter by gender
+      bool matchesGender = selectedSexoFilter == null ||
+          estudiante.sexo == selectedSexoFilter;
+
+      return matchesSearch && matchesGender;
     }).toList();
   }
 
@@ -946,6 +953,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
         color: Theme.of(context).scaffoldBackgroundColor,
         child: Column(
           children: [
+            // First row: Filters
             Row(
               children: [
                 Expanded(
@@ -1120,6 +1128,20 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
+                        SizedBox(
+                          width: 120,
+                          child: _buildDropdown(
+                            label: 'Sexo',
+                            value: selectedSexoFilter ?? 'Todos',
+                            items: const ['Todos', 'Masculino', 'Femenino'],
+                            onChanged: (value) {
+                              setState(() {
+                                selectedSexoFilter = value == 'Todos' ? null : value;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
                         ListenableBuilder(
                           listenable: Listenable.merge(
                               [_searchController, _searchFocusNode]),
@@ -1166,30 +1188,31 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                // Action buttons on the right
-                Column(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _showEstudianteDialog,
-                      icon: const Icon(Icons.person_add),
-                      label: const Text('Agregar Estudiante'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: _importarDesdeExcel,
-                      icon: const Icon(Icons.upload_file),
-                      label: const Text('Importar Excel'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                      ),
-                    ),
-                  ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Second row: Action buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _showEstudianteDialog,
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Agregar Estudiante'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _importarDesdeExcel,
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text('Importar Excel'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                  ),
                 ),
               ],
             ),
