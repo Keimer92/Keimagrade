@@ -947,12 +947,13 @@ class _NotasScreenState extends State<NotasScreen>
         indicatorIndex++) {
       final indicador = indicadores[indicatorIndex];
       double indicadorTotalVal = 0;
+      final indicadorModa = esCualitativaReal ? _calcularModaIndicador(indicador.criterios) : '';
 
       for (int criterioIndex = 0; criterioIndex < 3; criterioIndex++) {
         final criterio = indicador.criterios.length > criterioIndex
             ? indicador.criterios[criterioIndex]
             : null;
-        if (criterio != null) indicadorTotalVal += criterio.puntosObtenidos;
+        if (criterio != null && !esCualitativaReal) indicadorTotalVal += criterio.puntosObtenidos;
 
         rowCells.add(TableCell(
           child: Padding(
@@ -1037,7 +1038,8 @@ class _NotasScreenState extends State<NotasScreen>
                                       valorCualitativo: val,
                                       puntosObtenidos:
                                           (f * criterio.puntosMaximos)
-                                              .roundToDouble());
+                                              .roundToDouble(),
+                                      esCualitativa: true);
                             }
                           } else {
                             final pts = double.tryParse(value) ?? 0.0;
@@ -1047,7 +1049,8 @@ class _NotasScreenState extends State<NotasScreen>
                                     estudianteId: estudiante.id!,
                                     criterioId: criterio.id,
                                     valorCualitativo: '',
-                                    puntosObtenidos: pts.roundToDouble());
+                                    puntosObtenidos: pts.roundToDouble(),
+                                    esCualitativa: false);
                           }
                         },
                         onTapOutside: (_) =>
@@ -1061,15 +1064,19 @@ class _NotasScreenState extends State<NotasScreen>
       rowCells.add(TableCell(
           child: Container(
               padding: const EdgeInsets.all(4),
-              color: _getScoreColor(indicadorTotalVal, indicador.totalMaximo),
+              color: esCualitativaReal
+                  ? _getCalificacionColor(indicadorModa)
+                  : _getScoreColor(indicadorTotalVal, indicador.totalMaximo),
               child: Text(
-                  '${indicadorTotalVal.round()}/${indicador.totalMaximo.toInt()}',
+                  esCualitativaReal
+                      ? indicadorModa
+                      : '${indicadorTotalVal.round()}/${indicador.totalMaximo.toInt()}',
                   style: TextStyle(
                       fontSize: 12,
                       color: AppTheme.getTextPrimary(context),
                       fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center))));
-      totalPuntosRow += indicadorTotalVal;
+      if (!esCualitativaReal) totalPuntosRow += indicadorTotalVal;
     }
 
     final double maxTotal =
@@ -1081,9 +1088,13 @@ class _NotasScreenState extends State<NotasScreen>
     rowCells.add(TableCell(
       child: Container(
         padding: const EdgeInsets.all(8),
-        color: _getScoreColor(totalPuntosRow, maxTotal).withOpacity(0.2),
+        color: esCualitativaReal
+            ? _getCalificacionColor(califFinal).withOpacity(0.2)
+            : _getScoreColor(totalPuntosRow, maxTotal).withOpacity(0.2),
         child: Column(children: [
-          Text('${totalPuntosRow.round()}/${maxTotal.toInt()}',
+          Text(esCualitativaReal
+              ? califFinal
+              : '${totalPuntosRow.round()}/${maxTotal.toInt()}',
               style: TextStyle(
                   fontSize: 14,
                   color: AppTheme.getTextPrimary(context),
@@ -1263,29 +1274,46 @@ class _NotasScreenState extends State<NotasScreen>
     );
   }
 
+  String _calcularModaIndicador(List<CriterioDetalle> criterios) {
+    final qualifying = ['AA', 'AS', 'AF'];
+    final Map<String, int> frecuencias = {};
+    for (final cri in criterios) {
+      final sigla = cri.valorCualitativo ?? '';
+      if (qualifying.contains(sigla)) {
+        frecuencias[sigla] = (frecuencias[sigla] ?? 0) + 1;
+      }
+    }
+    if (frecuencias.isEmpty) return '-';
+    final maxFreq = frecuencias.values.reduce((a, b) => a > b ? a : b);
+    final tied = frecuencias.entries.where((e) => e.value == maxFreq).map((e) => e.key).toList();
+    if (tied.length == 1) return tied[0];
+    // En caso de empate, ordenar por valor ascendente y tomar el del medio
+    final order = {'AA': 4, 'AS': 3, 'AF': 2};
+    tied.sort((a, b) => order[a]!.compareTo(order[b]!)); // asc: AF, AS, AA
+    final middleIndex = tied.length ~/ 2;
+    return tied[middleIndex];
+  }
+
   String _calcularModa(List<IndicadorDetalle> indicadores) {
+    final qualifying = ['AA', 'AS', 'AF'];
     final Map<String, int> frecuencias = {};
     for (final ind in indicadores) {
       for (final cri in ind.criterios) {
-        if (cri.valorCualitativo != null && cri.valorCualitativo!.isNotEmpty) {
-          frecuencias[cri.valorCualitativo!] =
-              (frecuencias[cri.valorCualitativo!] ?? 0) + 1;
+        final sigla = cri.valorCualitativo ?? '';
+        if (qualifying.contains(sigla)) {
+          frecuencias[sigla] = (frecuencias[sigla] ?? 0) + 1;
         }
       }
     }
     if (frecuencias.isEmpty) return '-';
-    String moda = '-';
-    int maxFrecuencia = 0;
-    final priority = ['AA', 'AS', 'AF', 'AI'];
-    frecuencias.forEach((sigla, freq) {
-      if (freq > maxFrecuencia ||
-          (freq == maxFrecuencia &&
-              (priority.indexOf(sigla) < priority.indexOf(moda)))) {
-        maxFrecuencia = freq;
-        moda = sigla;
-      }
-    });
-    return moda;
+    final maxFreq = frecuencias.values.reduce((a, b) => a > b ? a : b);
+    final tied = frecuencias.entries.where((e) => e.value == maxFreq).map((e) => e.key).toList();
+    if (tied.length == 1) return tied[0];
+    // En caso de empate, ordenar por valor ascendente y tomar el del medio
+    final order = {'AA': 4, 'AS': 3, 'AF': 2};
+    tied.sort((a, b) => order[a]!.compareTo(order[b]!)); // asc: AF, AS, AA
+    final middleIndex = tied.length ~/ 2;
+    return tied[middleIndex];
   }
 }
 

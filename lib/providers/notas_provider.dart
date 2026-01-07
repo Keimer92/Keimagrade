@@ -213,7 +213,9 @@ class NotasProvider extends ChangeNotifier {
     required int criterioId,
     required String valorCualitativo,
     required double puntosObtenidos,
+    required bool esCualitativa,
   }) async {
+
     // ACTUALIZACIÓN OPTIMISTA: Actualizar en memoria inmediatamente
     bool updatedInMemory = false;
     for (int i = 0; i < _notasDetalladas.length; i++) {
@@ -239,8 +241,10 @@ class NotasProvider extends ChangeNotifier {
           }
 
           if (criteriaFoundInThisIndicator) {
-            final nuevoTotalPuntosInd = nuevosCriterios.fold<double>(
-                0, (sum, c) => sum + c.puntosObtenidos);
+            final nuevoTotalPuntosInd = esCualitativa
+                ? 0.0 // For qualitative, we don't sum points
+                : nuevosCriterios.fold<double>(
+                    0, (sum, c) => sum + c.puntosObtenidos);
             nuevosIndicadores.add(ind.copyWith(
               criterios: nuevosCriterios,
               totalPuntos: nuevoTotalPuntosInd,
@@ -251,12 +255,18 @@ class NotasProvider extends ChangeNotifier {
         }
 
         if (updatedInMemory) {
-          final nuevoTotalPuntosNota = nuevosIndicadores.fold<double>(
-              0, (sum, ind) => sum + ind.totalPuntos);
-          final nuevoPorcentaje = notaOrig.totalMaximo > 0
-              ? (nuevoTotalPuntosNota / notaOrig.totalMaximo) * 100
-              : 0.0;
-          final nuevaCalificacion = _calcularCalificacion(nuevoPorcentaje);
+          final nuevoTotalPuntosNota = esCualitativa
+              ? 0.0 // For qualitative, we don't sum points
+              : nuevosIndicadores.fold<double>(
+                  0, (sum, ind) => sum + ind.totalPuntos);
+          final nuevoPorcentaje = esCualitativa
+              ? 0.0 // For qualitative, percentage doesn't apply
+              : (notaOrig.totalMaximo > 0
+                  ? (nuevoTotalPuntosNota / notaOrig.totalMaximo) * 100
+                  : 0.0);
+          final nuevaCalificacion = esCualitativa
+              ? _calcularModa(nuevosIndicadores)
+              : _calcularCalificacion(nuevoPorcentaje);
 
           _notasDetalladas[i] = notaOrig.copyWith(
             indicadores: nuevosIndicadores,
@@ -285,6 +295,28 @@ class NotasProvider extends ChangeNotifier {
       // En caso de error, forzar recarga con estado de carga para mostrar inconsistencia
       await cargarNotasDetalladas();
     }
+  }
+
+  String _calcularModa(List<IndicadorDetalle> indicadores) {
+    final qualifying = ['AA', 'AS', 'AF'];
+    final Map<String, int> frecuencias = {};
+    for (final ind in indicadores) {
+      for (final cri in ind.criterios) {
+        final sigla = cri.valorCualitativo ?? '';
+        if (qualifying.contains(sigla)) {
+          frecuencias[sigla] = (frecuencias[sigla] ?? 0) + 1;
+        }
+      }
+    }
+    if (frecuencias.isEmpty) return '-';
+    final maxFreq = frecuencias.values.reduce((a, b) => a > b ? a : b);
+    final tied = frecuencias.entries.where((e) => e.value == maxFreq).map((e) => e.key).toList();
+    if (tied.length == 1) return tied[0];
+    // En caso de empate, ordenar por valor ascendente y tomar el del medio
+    final order = {'AA': 4, 'AS': 3, 'AF': 2};
+    tied.sort((a, b) => order[a]!.compareTo(order[b]!)); // asc: AF, AS, AA
+    final middleIndex = tied.length ~/ 2;
+    return tied[middleIndex];
   }
 
   String _calcularCalificacion(double porcentaje) {

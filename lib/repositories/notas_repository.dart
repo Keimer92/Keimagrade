@@ -228,6 +228,18 @@ class NotasRepository {
   }) async {
     final db = await _dbHelper.database;
 
+    // Check if asignatura or grado is qualitative
+    final asignaturaMaps = await db.rawQuery(
+        'SELECT cualitativo FROM asignaturas WHERE id = ?', [asignaturaId]);
+    final gradoMaps = await db.rawQuery(
+        'SELECT cualitativo FROM grados WHERE id = ?', [gradoId]);
+
+    final esCualitativaAsignatura = asignaturaMaps.isNotEmpty &&
+        (asignaturaMaps.first['cualitativo'] as int) == 1;
+    final esCualitativoGrado = gradoMaps.isNotEmpty &&
+        (gradoMaps.first['cualitativo'] as int) == 1;
+    final esCualitativa = esCualitativaAsignatura || esCualitativoGrado;
+
     // Base query for students
     String studentQuery = '''
       SELECT DISTINCT e.id, e.estudiante, e.numero_identidad
@@ -325,7 +337,9 @@ class NotasRepository {
 
       final porcentaje =
           totalMaximo > 0 ? (totalPuntos / totalMaximo) * 100 : 0.0;
-      final calificacion = _calcularCalificacion(porcentaje);
+      final calificacion = esCualitativa
+          ? _calcularModa(indicadores)
+          : _calcularCalificacion(porcentaje);
 
       // Get cut name
       final corteMaps = await db.rawQuery(
@@ -410,6 +424,28 @@ class NotasRepository {
       ORDER BY ce.anio_lectivo_id DESC
     ''', [colegioId]);
     return maps.map((m) => m['anio_lectivo_id'] as int).toList();
+  }
+
+  String _calcularModa(List<IndicadorDetalle> indicadores) {
+    final qualifying = ['AA', 'AS', 'AF'];
+    final Map<String, int> frecuencias = {};
+    for (final ind in indicadores) {
+      for (final cri in ind.criterios) {
+        final sigla = cri.valorCualitativo ?? '';
+        if (qualifying.contains(sigla)) {
+          frecuencias[sigla] = (frecuencias[sigla] ?? 0) + 1;
+        }
+      }
+    }
+    if (frecuencias.isEmpty) return '-';
+    final maxFreq = frecuencias.values.reduce((a, b) => a > b ? a : b);
+    final tied = frecuencias.entries.where((e) => e.value == maxFreq).map((e) => e.key).toList();
+    if (tied.length == 1) return tied[0];
+    // En caso de empate, ordenar por valor ascendente y tomar el del medio
+    final order = {'AA': 4, 'AS': 3, 'AF': 2};
+    tied.sort((a, b) => order[a]!.compareTo(order[b]!)); // asc: AF, AS, AA
+    final middleIndex = tied.length ~/ 2;
+    return tied[middleIndex];
   }
 
   String _calcularCalificacion(double porcentaje) {
