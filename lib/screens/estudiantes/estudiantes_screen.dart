@@ -794,12 +794,14 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     final gradoProvider = context.read<GradoProvider>();
     final seccionProvider = context.read<SeccionProvider>();
 
+    // Aplicar filtros con enfoque híbrido: repositorio + local
     context.read<EstudianteProvider>().aplicarFiltros(
           anioLectivoId: anioProvider.selectedAnio?.id,
           colegioId: colegioProvider.selectedColegio?.id,
           asignaturaId: asignaturaProvider.selectedAsignatura?.id,
           gradoId: gradoProvider.selectedGrado?.id,
           seccionId: seccionProvider.selectedSeccion?.id,
+          sexo: selectedSexoFilter, // Aplicar filtro de sexo a nivel de repositorio
         );
   }
 
