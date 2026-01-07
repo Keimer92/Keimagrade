@@ -119,9 +119,10 @@ class EstudianteRepository {
     required int asignaturaId,
     required int gradoId,
     required int seccionId,
+    String? sexo,
   }) async {
     final db = await _dbHelper.database;
-    final maps = await db.rawQuery('''
+    String query = '''
       SELECT DISTINCT e.* FROM estudiantes e
       INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
       WHERE ea.anio_lectivo_id = ?
@@ -131,8 +132,18 @@ class EstudianteRepository {
         AND ea.seccion_id = ?
         AND e.activo = 1
         AND ea.activo = 1
-      ORDER BY e.estudiante
-    ''', [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId]);
+    ''';
+
+    List<dynamic> args = [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId];
+
+    if (sexo != null && sexo.isNotEmpty) {
+      query += ' AND e.sexo = ?';
+      args.add(sexo);
+    }
+
+    query += ' ORDER BY e.estudiante';
+
+    final maps = await db.rawQuery(query, args);
     return List.generate(maps.length, (i) => Estudiante.fromMap(maps[i]));
   }
 

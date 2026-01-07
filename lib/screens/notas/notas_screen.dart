@@ -30,6 +30,7 @@ class _NotasScreenState extends State<NotasScreen>
   final FocusNode _searchFocusNode = FocusNode();
   final Map<String, FocusNode> _focusNodes = {};
   final Map<String, TextEditingController> _controllers = {};
+  String? _sexoSeleccionado = 'Todos';
 
   @override
   void initState() {
@@ -181,6 +182,7 @@ class _NotasScreenState extends State<NotasScreen>
           asignaturaId: asignaturaId,
           gradoId: gradoId,
           seccionId: seccionId,
+          sexo: _sexoSeleccionado,
         );
   }
 
@@ -263,11 +265,11 @@ class _NotasScreenState extends State<NotasScreen>
   }
 
   Future<void> _seleccionarEnCascadaDesdeGrado(
-      int anioLectivoId, int colegioId, int asignaturaId, int gradoId) async {
+      int anioLectivoId, int colegioIdParam, int asignaturaIdParam, int gradoIdParam) async {
     final notasProvider = context.read<NotasProvider>();
     final seccionProvider = context.read<SeccionProvider>();
     final seccionesIds = await notasProvider.obtenerSeccionesDisponibles(
-        anioLectivoId, colegioId, asignaturaId, gradoId);
+        anioLectivoId, colegioIdParam, asignaturaIdParam, gradoIdParam);
 
     if (seccionesIds.isNotEmpty) {
       if (seccionProvider.selectedSeccion == null ||
@@ -279,7 +281,32 @@ class _NotasScreenState extends State<NotasScreen>
         seccionProvider.seleccionarSeccion(lista.first);
       }
     }
-    _aplicarFiltros();
+
+    // Aplicar filtros sin incluir el filtro de sexo durante el proceso en cascada
+    // para evitar interferir con la carga inicial de datos
+    final anioId = context.read<AnioLectivoProvider>().selectedAnio?.id;
+    final colegioId = context.read<ColegioProvider>().selectedColegio?.id;
+    final asignaturaId = context.read<AsignaturaProvider>().selectedAsignatura?.id;
+    final gradoId = context.read<GradoProvider>().selectedGrado?.id;
+    final seccionId = context.read<SeccionProvider>().selectedSeccion?.id;
+
+    context.read<NotasProvider>().aplicarFiltros(
+          anioLectivoId: anioId,
+          colegioId: colegioId,
+          asignaturaId: asignaturaId,
+          gradoId: gradoId,
+          seccionId: seccionId,
+        );
+
+    // Aplicar filtros de estudiantes SIN el filtro de sexo durante el proceso en cascada
+    context.read<EstudianteProvider>().aplicarFiltros(
+          anioLectivoId: anioId,
+          colegioId: colegioId,
+          asignaturaId: asignaturaId,
+          gradoId: gradoId,
+          seccionId: seccionId,
+          sexo: null, // No aplicar filtro de sexo durante el proceso en cascada
+        );
   }
 
   Future<void> _seleccionarAnioCercanoDesdeColegio(int colegioId) async {
@@ -476,6 +503,23 @@ class _NotasScreenState extends State<NotasScreen>
                               (s) => s.letra == value,
                               orElse: () => seccionProvider.secciones.first);
                           seccionProvider.seleccionarSeccion(selected);
+                          _aplicarFiltros();
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 120,
+                    child: _buildDropdown(
+                      label: 'Sexo',
+                      value: _sexoSeleccionado ?? 'Todos',
+                      items: const ['Todos', 'Masculino', 'Femenino'],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _sexoSeleccionado = value == 'Todos' ? null : value;
+                          });
                           _aplicarFiltros();
                         }
                       },

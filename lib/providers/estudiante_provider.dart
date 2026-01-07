@@ -54,15 +54,17 @@ class EstudianteProvider extends ChangeNotifier {
   int? _asignaturaIdFiltro;
   int? _gradoIdFiltro;
   int? _seccionIdFiltro;
+  String? _sexoFiltro;
 
   List<Estudiante> get estudiantes => _estudiantesFiltrados;
   List<Estudiante> get todosEstudiantes => _estudiantes;
   Estudiante? get selectedEstudiante => _selectedEstudiante;
   bool get isLoading => _isLoading;
-  bool get tieneFiltrosActivos => _anioLectivoIdFiltro != null || 
-      _colegioIdFiltro != null || 
-      _asignaturaIdFiltro != null || 
-      _gradoIdFiltro != null || 
+  bool get tieneFiltrosActivos =>
+      _anioLectivoIdFiltro != null ||
+      _colegioIdFiltro != null ||
+      _asignaturaIdFiltro != null ||
+      _gradoIdFiltro != null ||
       _seccionIdFiltro != null;
 
   // Encabezados requeridos para importación
@@ -80,7 +82,7 @@ class EstudianteProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _estudiantes = await _repository.obtenerActivos();
-      
+
       // Si hay filtros activos, aplicarlos
       if (tieneFiltrosActivos && _todosLosFiltrosCompletos()) {
         _estudiantesFiltrados = await _repository.obtenerPorAsignacion(
@@ -89,11 +91,12 @@ class EstudianteProvider extends ChangeNotifier {
           asignaturaId: _asignaturaIdFiltro!,
           gradoId: _gradoIdFiltro!,
           seccionId: _seccionIdFiltro!,
+          sexo: _sexoFiltro,
         );
       } else {
         _estudiantesFiltrados = _estudiantes;
       }
-      
+
       if (_estudiantesFiltrados.isNotEmpty) {
         _selectedEstudiante = _estudiantesFiltrados.first;
       } else {
@@ -107,25 +110,28 @@ class EstudianteProvider extends ChangeNotifier {
     }
   }
 
-  bool _todosLosFiltrosCompletos() => _anioLectivoIdFiltro != null &&
-        _colegioIdFiltro != null &&
-        _asignaturaIdFiltro != null &&
-        _gradoIdFiltro != null &&
-        _seccionIdFiltro != null;
+  bool _todosLosFiltrosCompletos() =>
+      _anioLectivoIdFiltro != null &&
+      _colegioIdFiltro != null &&
+      _asignaturaIdFiltro != null &&
+      _gradoIdFiltro != null &&
+      _seccionIdFiltro != null;
 
-  /// Aplica filtros por año lectivo, colegio, asignatura, grado y sección
+  /// Aplica filtros por año lectivo, colegio, asignatura, grado, sección y sexo
   Future<void> aplicarFiltros({
     int? anioLectivoId,
     int? colegioId,
     int? asignaturaId,
     int? gradoId,
     int? seccionId,
+    String? sexo,
   }) async {
     _anioLectivoIdFiltro = anioLectivoId;
     _colegioIdFiltro = colegioId;
     _asignaturaIdFiltro = asignaturaId;
     _gradoIdFiltro = gradoId;
     _seccionIdFiltro = seccionId;
+    _sexoFiltro = sexo;
 
     await cargarEstudiantes();
   }
@@ -144,31 +150,39 @@ class EstudianteProvider extends ChangeNotifier {
   // ============== MÉTODOS PARA FILTROS EN CASCADA ==============
 
   /// Obtiene los IDs de años lectivos disponibles para el colegio seleccionado
-  Future<List<int>> obtenerAniosDisponiblesDesdeColegio(int colegioId) async => _repository.obtenerAniosConAsignacion(colegioId: colegioId);
+  Future<List<int>> obtenerAniosDisponiblesDesdeColegio(int colegioId) async =>
+      _repository.obtenerAniosConAsignacion(colegioId: colegioId);
 
   /// Obtiene los IDs de colegios disponibles para el año lectivo seleccionado
-  Future<List<int>> obtenerColegiosDisponibles(int anioLectivoId) async => _repository.obtenerColegiosConAsignacion(anioLectivoId: anioLectivoId);
+  Future<List<int>> obtenerColegiosDisponibles(int anioLectivoId) async =>
+      _repository.obtenerColegiosConAsignacion(anioLectivoId: anioLectivoId);
 
   /// Obtiene los IDs de asignaturas disponibles para el año y colegio seleccionados
-  Future<List<int>> obtenerAsignaturasDisponibles(int anioLectivoId, int colegioId) async => _repository.obtenerAsignaturasConAsignacion(
-      anioLectivoId: anioLectivoId,
-      colegioId: colegioId,
-    );
+  Future<List<int>> obtenerAsignaturasDisponibles(
+          int anioLectivoId, int colegioId) async =>
+      _repository.obtenerAsignaturasConAsignacion(
+        anioLectivoId: anioLectivoId,
+        colegioId: colegioId,
+      );
 
   /// Obtiene los IDs de grados disponibles para el año, colegio y asignatura seleccionados
-  Future<List<int>> obtenerGradosDisponibles(int anioLectivoId, int colegioId, int asignaturaId) async => _repository.obtenerGradosConAsignacion(
-      anioLectivoId: anioLectivoId,
-      colegioId: colegioId,
-      asignaturaId: asignaturaId,
-    );
+  Future<List<int>> obtenerGradosDisponibles(
+          int anioLectivoId, int colegioId, int asignaturaId) async =>
+      _repository.obtenerGradosConAsignacion(
+        anioLectivoId: anioLectivoId,
+        colegioId: colegioId,
+        asignaturaId: asignaturaId,
+      );
 
   /// Obtiene los IDs de secciones disponibles para el año, colegio, asignatura y grado seleccionados
-  Future<List<int>> obtenerSeccionesDisponibles(int anioLectivoId, int colegioId, int asignaturaId, int gradoId) async => _repository.obtenerSeccionesConAsignacion(
-      anioLectivoId: anioLectivoId,
-      colegioId: colegioId,
-      asignaturaId: asignaturaId,
-      gradoId: gradoId,
-    );
+  Future<List<int>> obtenerSeccionesDisponibles(int anioLectivoId,
+          int colegioId, int asignaturaId, int gradoId) async =>
+      _repository.obtenerSeccionesConAsignacion(
+        anioLectivoId: anioLectivoId,
+        colegioId: colegioId,
+        asignaturaId: asignaturaId,
+        gradoId: gradoId,
+      );
 
   void seleccionarEstudiante(Estudiante estudiante) {
     _selectedEstudiante = estudiante;
@@ -235,7 +249,8 @@ class EstudianteProvider extends ChangeNotifier {
   }
 
   /// Obtiene las asignaciones académicas de un estudiante
-  Future<List<Map<String, dynamic>>> obtenerAsignacionesEstudiante(int estudianteId) async {
+  Future<List<Map<String, dynamic>>> obtenerAsignacionesEstudiante(
+      int estudianteId) async {
     final db = await DatabaseHelper().database;
     final maps = await db.rawQuery('''
       SELECT ea.* FROM estudiantes_asignaciones ea
@@ -248,22 +263,22 @@ class EstudianteProvider extends ChangeNotifier {
 
   /// Normaliza un encabezado para comparación
   String normalizarHeader(String header) => header
-        .toLowerCase()
-        .trim()
-        .replaceAll('ó', 'o')
-        .replaceAll('á', 'a')
-        .replaceAll('é', 'e')
-        .replaceAll('í', 'i')
-        .replaceAll('ú', 'u')
-        .replaceAll('ñ', 'n')
-        .replaceAll('año', 'anio')
-        .replaceAll('sección', 'seccion');
+      .toLowerCase()
+      .trim()
+      .replaceAll('ó', 'o')
+      .replaceAll('á', 'a')
+      .replaceAll('é', 'e')
+      .replaceAll('í', 'i')
+      .replaceAll('ú', 'u')
+      .replaceAll('ñ', 'n')
+      .replaceAll('año', 'anio')
+      .replaceAll('sección', 'seccion');
 
   /// Valida si los encabezados del Excel contienen los campos requeridos
   bool validarEncabezados(List<String> headers) {
     final headersLower = headers.map((h) => h.toLowerCase().trim()).toList();
-    return encabezadosRequeridos.every((required) =>
-        headersLower.any((h) => normalizarHeader(h) == normalizarHeader(required)));
+    return encabezadosRequeridos.every((required) => headersLower
+        .any((h) => normalizarHeader(h) == normalizarHeader(required)));
   }
 
   /// Extrae los datos de importación de una fila
@@ -273,22 +288,26 @@ class EstudianteProvider extends ChangeNotifier {
   }) {
     try {
       // Obtener valores por nombre de columna
-      final estudianteCompleto = _obtenerValorPorNombre(fila, headers, 
-          ['estudiante', 'nombre completo', 'alumno']);
-      final anioLectivo = _obtenerValorPorNombre(fila, headers, 
-          ['año lectivo', 'anio lectivo', 'año', 'anio']);
-      final colegio = _obtenerValorPorNombre(fila, headers, 
-          ['colegio', 'escuela', 'institucion']);
-      final asignatura = _obtenerValorPorNombre(fila, headers, 
-          ['asignatura', 'materia', 'curso']);
-      final grado = _obtenerValorPorNombre(fila, headers, 
-          ['grado', 'nivel', 'año escolar']);
-      final seccion = _obtenerValorPorNombre(fila, headers, 
-          ['seccion', 'sección', 'grupo', 'paralelo']);
+      final estudianteCompleto = _obtenerValorPorNombre(
+          fila, headers, ['estudiante', 'nombre completo', 'alumno']);
+      final anioLectivo = _obtenerValorPorNombre(
+          fila, headers, ['año lectivo', 'anio lectivo', 'año', 'anio']);
+      final colegio = _obtenerValorPorNombre(
+          fila, headers, ['colegio', 'escuela', 'institucion']);
+      final asignatura = _obtenerValorPorNombre(
+          fila, headers, ['asignatura', 'materia', 'curso']);
+      final grado = _obtenerValorPorNombre(
+          fila, headers, ['grado', 'nivel', 'año escolar']);
+      final seccion = _obtenerValorPorNombre(
+          fila, headers, ['seccion', 'sección', 'grupo', 'paralelo']);
 
       // Validar campos requeridos
-      if (estudianteCompleto == null || anioLectivo == null || colegio == null ||
-          asignatura == null || grado == null || seccion == null) {
+      if (estudianteCompleto == null ||
+          anioLectivo == null ||
+          colegio == null ||
+          asignatura == null ||
+          grado == null ||
+          seccion == null) {
         return null;
       }
 
@@ -326,8 +345,8 @@ class EstudianteProvider extends ChangeNotifier {
     }
   }
 
-  String? _obtenerValorPorNombre(
-      Map<String, String?> fila, List<String> headers, List<String> posiblesNombres) {
+  String? _obtenerValorPorNombre(Map<String, String?> fila,
+      List<String> headers, List<String> posiblesNombres) {
     for (final nombre in posiblesNombres) {
       final headerEncontrado = headers.firstWhere(
         (h) => normalizarHeader(h) == normalizarHeader(nombre),
