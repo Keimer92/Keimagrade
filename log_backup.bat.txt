@@ -1,0 +1,9 @@
+Starting backup.bat 
+Current directory: D:\Mis proyectos\Flutter\Keimagrade 
+Command: python "C:/Keimer\manager.py" --backup "D:\Mis proyectos\Flutter\Keimagrade" 
+Proyecto detectado: Flutter
+Creando: D:\Mis proyectos\Flutter\Keimagrade\Backup\Flutter\14_2026-01-17_23-19.zip
+Exito! Se respaldaron 229 archivos.
+Tamaño del respaldo: 74.35 MB
+Guardado en: D:\Mis proyectos\Flutter\Keimagrade\Backup\Flutter\14_2026-01-17_23-19.zip
+Finished 

@@ -28,7 +28,7 @@ class GradoProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('Error al cargar grados: $e');
+      debugPrint('Error al cargar grados: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -51,7 +51,7 @@ class GradoProvider extends ChangeNotifier {
         await _repository.crear(grado);
       }
     } catch (e) {
-      print('Error al crear grados por defecto: $e');
+      debugPrint('Error al crear grados por defecto: $e');
     }
   }
 
@@ -68,12 +68,12 @@ class GradoProvider extends ChangeNotifier {
       final existeNombre = todosLosGrados.any((g) => g.nombre.toLowerCase().trim() == grado.nombre.toLowerCase().trim());
 
       if (existeNumero) {
-        print('Ya existe un grado con el número ${grado.numero}');
+        debugPrint('Ya existe un grado con el número ${grado.numero}');
         return false;
       }
 
       if (existeNombre) {
-        print('Ya existe un grado con el nombre "${grado.nombre}"');
+        debugPrint('Ya existe un grado con el nombre "${grado.nombre}"');
         return false;
       }
 
@@ -81,7 +81,7 @@ class GradoProvider extends ChangeNotifier {
       await cargarGrados();
       return true;
     } catch (e) {
-      print('Error al crear grado: $e');
+      debugPrint('Error al crear grado: $e');
       return false;
     }
   }
@@ -91,7 +91,7 @@ class GradoProvider extends ChangeNotifier {
       await _repository.actualizar(grado);
       await cargarGrados();
     } catch (e) {
-      print('Error al actualizar grado: $e');
+      debugPrint('Error al actualizar grado: $e');
     }
   }
 
@@ -100,7 +100,7 @@ class GradoProvider extends ChangeNotifier {
       await _repository.eliminar(id);
       await cargarGrados();
     } catch (e) {
-      print('Error al eliminar grado: $e');
+      debugPrint('Error al eliminar grado: $e');
     }
   }
 }

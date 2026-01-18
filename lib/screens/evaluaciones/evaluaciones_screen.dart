@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:drift/drift.dart' hide Column;
+import '../../database/database.dart' as db;
 import '../../providers/anio_lectivo_provider.dart';
 import '../../providers/asignatura_provider.dart';
 import '../../providers/corte_evaluativo_provider.dart';
@@ -50,12 +52,14 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
     _criterioProvider = CriterioEvaluacionProvider();
 
     // Cargar datos iniciales
-    Future.microtask(() {
-      _corteProvider.cargarCortes();
-      _indicadorProvider.cargarIndicadores();
-      _criterioProvider.cargarCriterios();
+    Future.microtask(() async {
+      if (!mounted) return;
+      await _corteProvider.cargarCortes();
+      await _indicadorProvider.cargarIndicadores();
+      await _criterioProvider.cargarCriterios();
       // Cargar asignaturas para que estén disponibles en el dropdown
-      Provider.of<AsignaturaProvider>(context, listen: false)
+      if (!mounted) return;
+      await Provider.of<AsignaturaProvider>(context, listen: false)
           .cargarAsignaturas();
     });
 
@@ -205,65 +209,56 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
         orElse: () => throw Exception('Corte no encontrado'),
       );
 
-      final db = await DatabaseHelper().database;
+      final database = await DatabaseHelper().database;
 
-      await db.transaction((txn) async {
+      await database.transaction(() async {
         // 1. Eliminar indicadores y criterios existentes para este corte
         // Obtener IDs de indicadores para borrar sus criterios
-        final indicadoresIds = (await txn.query(
-          'indicadores_evaluacion',
-          columns: ['id'],
-          where: 'corteId = ?',
-          whereArgs: [corteActual.id],
-        ))
-            .map((m) => m['id'] as int)
-            .toList();
+        final indicadoresRows = await (database.select(database.indicadoresEvaluacion)
+              ..where((t) => t.corteId.equals(corteActual.id!)))
+            .get();
+        final indicadoresIds = indicadoresRows.map((m) => m.id).toList();
 
         if (indicadoresIds.isNotEmpty) {
-          final placeholders = indicadoresIds.map((_) => '?').join(',');
-          await txn.delete(
-            'criterios_evaluacion',
-            where: 'indicadorId IN ($placeholders)',
-            whereArgs: indicadoresIds,
-          );
-          await txn.delete(
-            'indicadores_evaluacion',
-            where: 'corteId = ?',
-            whereArgs: [corteActual.id],
-          );
+          await (database.delete(database.criteriosEvaluacion)
+                ..where((t) => t.indicadorId.isIn(indicadoresIds)))
+              .go();
+          await (database.delete(database.indicadoresEvaluacion)
+                ..where((t) => t.corteId.equals(corteActual.id!)))
+              .go();
         }
 
         // 2. Guardar nuevos indicadores y sus criterios
         for (int i = 0; i < 5; i++) {
-          final indicadorMap = {
-            'anio_lectivo_id': anioProvider.selectedAnio!.id!,
-            'corteId': corteActual.id!,
-            'numero': i + 1,
-            'descripcion': _indicadorDescripcionControllers[i].text,
-            'puntosTotales': 20,
-            'activo': 1,
-          };
-
-          final indicadorId =
-              await txn.insert('indicadores_evaluacion', indicadorMap);
+          final indicadorId = await database.into(database.indicadoresEvaluacion).insert(
+                db.IndicadoresEvaluacionCompanion.insert(
+                  anioLectivoId: anioProvider.selectedAnio!.id!,
+                  corteId: corteActual.id!,
+                  numero: i + 1,
+                  descripcion: _indicadorDescripcionControllers[i].text,
+                  puntosTotales: const Value(20),
+                  activo: const Value(true),
+                ),
+              );
 
           // Guardar los 3 criterios para este indicador
           for (int j = 0; j < 3; j++) {
             final criterioIndex = (i * 3) + j;
-            final criterioMap = {
-              'anio_lectivo_id': anioProvider.selectedAnio!.id!,
-              'indicadorId': indicadorId,
-              'numero': j + 1,
-              'descripcion':
-                  _criterioDescripcionControllers[criterioIndex].text,
-              'puntosMaximos': asignaturaProvider
-                      .selectedAsignatura!.cualitativo
-                  ? 0
-                  : int.tryParse(_criterioControllers[criterioIndex].text) ?? 0,
-              'puntosObtenidos': 0,
-              'activo': 1,
-            };
-            await txn.insert('criterios_evaluacion', criterioMap);
+            await database.into(database.criteriosEvaluacion).insert(
+                  db.CriteriosEvaluacionCompanion.insert(
+                    anioLectivoId: anioProvider.selectedAnio!.id!,
+                    indicadorId: indicadorId,
+                    numero: j + 1,
+                    descripcion:
+                        _criterioDescripcionControllers[criterioIndex].text,
+                    puntosMaximos: Value(asignaturaProvider
+                            .selectedAsignatura!.cualitativo
+                        ? 0
+                        : double.tryParse(_criterioControllers[criterioIndex].text) ?? 0),
+                    puntosObtenidos: const Value(0),
+                    activo: const Value(true),
+                  ),
+                );
           }
         }
       });
@@ -271,6 +266,8 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
       // Recargar datos en los providers
       await _indicadorProvider.cargarIndicadores();
       await _criterioProvider.cargarCriterios();
+
+      if (!mounted) return;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -323,10 +320,10 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: AppTheme.primaryColor.withOpacity(0.3)),
+                        color: AppTheme.primaryColor.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -415,65 +412,6 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
     );
   }
 
-  Widget _buildFilters(AsignaturaProvider asignaturaProvider,
-          AnioLectivoProvider anioProvider) =>
-      Container(
-        padding: const EdgeInsets.all(16),
-        color: AppTheme.backgroundColor,
-        child: Column(
-          children: [
-            // Año Lectivo (mostrar pero no editable en evaluaciones, usa el seleccionado globalmente)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border:
-                    Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today,
-                      color: AppTheme.primaryColor),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Año Lectivo: ${anioProvider.selectedAnio?.anio ?? "No seleccionado"}',
-                    style: const TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Asignatura
-            _buildDropdown(
-              label: 'Asignatura',
-              value: asignaturaProvider.selectedAsignatura?.nombre ??
-                  'Seleccionar',
-              items: asignaturaProvider.asignaturas
-                  .map((asignatura) => asignatura.nombre)
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  final selectedAsignatura =
-                      asignaturaProvider.asignaturas.firstWhere(
-                    (asignatura) => asignatura.nombre == value,
-                    orElse: () => asignaturaProvider.asignaturas.first,
-                  );
-                  asignaturaProvider.seleccionarAsignatura(selectedAsignatura);
-                  // Recargar datos cuando cambie la asignatura
-                  setState(() {});
-                }
-              },
-            ),
-          ],
-        ),
-      );
-
   Widget _buildDropdown({
     required String label,
     required String value,
@@ -481,7 +419,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
     required Function(String?) onChanged,
   }) =>
       DropdownButtonFormField<String>(
-        initialValue: value != 'Seleccionar' ? value : null,
+        value: value != 'Seleccionar' && items.contains(value) ? value : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(
@@ -550,13 +488,13 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: _indicadorErrores[numeroIndicador - 1]
-                      ? AppTheme.errorColor.withOpacity(0.2)
-                      : AppTheme.primaryColor.withOpacity(0.1),
+                      ? AppTheme.errorColor.withValues(alpha: 0.2)
+                      : AppTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _indicadorErrores[numeroIndicador - 1]
                         ? AppTheme.errorColor
-                        : AppTheme.primaryColor.withOpacity(0.3),
+                        : AppTheme.primaryColor.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -586,7 +524,7 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text(
@@ -652,12 +590,12 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
       margin: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceColor.withOpacity(0.5),
+        color: AppTheme.surfaceColor.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: tieneError
               ? AppTheme.errorColor
-              : AppTheme.cardColor.withOpacity(0.5),
+              : AppTheme.cardColor.withValues(alpha: 0.5),
           width: tieneError ? 2 : 1,
         ),
       ),
@@ -742,10 +680,10 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.05),
+                color: AppTheme.primaryColor.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(6),
                 border:
-                    Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
+                    Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
               ),
               child: const Row(
                 children: [
@@ -779,8 +717,8 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: tieneError
-            ? AppTheme.errorColor.withOpacity(0.1)
-            : AppTheme.primaryColor.withOpacity(0.05),
+            ? AppTheme.errorColor.withValues(alpha: 0.1)
+            : AppTheme.primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: tieneError ? AppTheme.errorColor : AppTheme.primaryColor,

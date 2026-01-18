@@ -18,7 +18,7 @@ class CorteEvaluativoProvider extends ChangeNotifier {
     try {
       _cortes = await _repository.obtenerActivos();
     } catch (e) {
-      print('Error al cargar cortes: $e');
+      debugPrint('Error al cargar cortes: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -35,7 +35,7 @@ class CorteEvaluativoProvider extends ChangeNotifier {
     try {
       _cortes = await _repository.obtenerPorAnioLectivo(anioId);
     } catch (e) {
-      print('Error al cargar cortes por año: $e');
+      debugPrint('Error al cargar cortes por año: $e');
     } finally {
       if (showLoading) {
         _isLoading = false;
@@ -56,7 +56,7 @@ class CorteEvaluativoProvider extends ChangeNotifier {
       await _repository.crear(corte);
       await cargarCortes();
     } catch (e) {
-      print('Error al crear corte: $e');
+      debugPrint('Error al crear corte: $e');
     }
   }
 
@@ -65,7 +65,7 @@ class CorteEvaluativoProvider extends ChangeNotifier {
       await _repository.actualizar(corte);
       await cargarCortes();
     } catch (e) {
-      print('Error al actualizar corte: $e');
+      debugPrint('Error al actualizar corte: $e');
     }
   }
 
@@ -74,7 +74,7 @@ class CorteEvaluativoProvider extends ChangeNotifier {
       await _repository.eliminar(id);
       await cargarCortes();
     } catch (e) {
-      print('Error al eliminar corte: $e');
+      debugPrint('Error al eliminar corte: $e');
     }
   }
 }

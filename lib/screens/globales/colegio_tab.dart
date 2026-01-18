@@ -17,8 +17,9 @@ class _ColegioTabState extends State<ColegioTab> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      context.read<ColegioProvider>().cargarColegios();
+    Future.microtask(() async {
+      if (!mounted) return;
+      await context.read<ColegioProvider>().cargarColegios();
     });
   }
 
@@ -89,7 +90,7 @@ class _ColegioTabState extends State<ColegioTab> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (nombreController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('El nombre es requerido')),
@@ -106,13 +107,16 @@ class _ColegioTabState extends State<ColegioTab> {
                 director: directorController.text,
               );
 
+              final provider = context.read<ColegioProvider>();
+              final navigator = Navigator.of(context);
+
               if (colegio == null) {
-                context.read<ColegioProvider>().crearColegio(nuevoColegio);
+                await provider.crearColegio(nuevoColegio);
               } else {
-                context.read<ColegioProvider>().actualizarColegio(nuevoColegio);
+                await provider.actualizarColegio(nuevoColegio);
               }
 
-              Navigator.pop(context);
+              navigator.pop();
             },
             child: Text(colegio == null ? 'Agregar' : 'Actualizar'),
           ),
@@ -173,7 +177,7 @@ class _ColegioTabState extends State<ColegioTab> {
                       onTap: () => provider.seleccionarColegio(colegio),
                       backgroundColor:
                           provider.selectedColegio?.id == colegio.id
-                              ? Theme.of(context).primaryColor.withOpacity(0.2)
+                              ? Theme.of(context).primaryColor.withValues(alpha: 0.2)
                               : Theme.of(context).cardColor,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

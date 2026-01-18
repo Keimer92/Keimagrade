@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart';
+import '../database/database.dart';
 import '../database/database_helper.dart';
 import '../models/anio_lectivo.dart';
 
@@ -6,54 +8,60 @@ class AnioLectivoRepository {
 
   Future<List<AnioLectivo>> obtenerTodos() async {
     final db = await _dbHelper.database;
-    final maps = await db.query('anos_lectivos');
-    return List.generate(maps.length, (i) => AnioLectivo.fromMap(maps[i]));
+    final anosLectivos = await db.anosLectivos.select().get();
+    return anosLectivos.map(_fromDrift).toList();
   }
 
   Future<List<AnioLectivo>> obtenerActivos() async {
     final db = await _dbHelper.database;
-    final maps = await db.query(
-      'anos_lectivos',
-      where: 'activo = ?',
-      whereArgs: [1],
-    );
-    return List.generate(maps.length, (i) => AnioLectivo.fromMap(maps[i]));
+    final anosLectivos = await (db.anosLectivos.select()
+      ..where((tbl) => tbl.activo.equals(true)))
+      .get();
+    return anosLectivos.map(_fromDrift).toList();
   }
 
   Future<AnioLectivo?> obtenerPorId(int id) async {
     final db = await _dbHelper.database;
-    final maps = await db.query(
-      'anos_lectivos',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    if (maps.isNotEmpty) {
-      return AnioLectivo.fromMap(maps.first);
+    final anosLectivos = await (db.anosLectivos.select()
+      ..where((tbl) => tbl.id.equals(id)))
+      .get();
+    if (anosLectivos.isNotEmpty) {
+      return _fromDrift(anosLectivos.first);
     }
     return null;
   }
 
   Future<int> crear(AnioLectivo anioLectivo) async {
     final db = await _dbHelper.database;
-    return db.insert('anos_lectivos', anioLectivo.toMap());
+    return db.into(db.anosLectivos).insert(_toCompanion(anioLectivo));
   }
 
-  Future<int> actualizar(AnioLectivo anioLectivo) async {
+  Future<bool> actualizar(AnioLectivo anioLectivo) async {
     final db = await _dbHelper.database;
-    return db.update(
-      'anos_lectivos',
-      anioLectivo.toMap(),
-      where: 'id = ?',
-      whereArgs: [anioLectivo.id],
-    );
+    final affectedRows = await (db.anosLectivos.update()
+      ..where((tbl) => tbl.id.equals(anioLectivo.id!)))
+      .write(_toCompanion(anioLectivo));
+    return affectedRows > 0;
   }
 
   Future<int> eliminar(int id) async {
     final db = await _dbHelper.database;
-    return db.delete(
-      'anos_lectivos',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return (db.anosLectivos.delete()
+      ..where((tbl) => tbl.id.equals(id)))
+      .go();
   }
+
+  // Helper methods for conversion
+  AnioLectivo _fromDrift(AnosLectivo row) => AnioLectivo(
+      id: row.id,
+      anio: row.anio,
+      activo: row.activo,
+      porDefecto: row.porDefecto,
+    );
+
+  AnosLectivosCompanion _toCompanion(AnioLectivo anioLectivo) => AnosLectivosCompanion.insert(
+      anio: anioLectivo.anio,
+      activo: Value(anioLectivo.activo),
+      porDefecto: Value(anioLectivo.porDefecto),
+    );
 }

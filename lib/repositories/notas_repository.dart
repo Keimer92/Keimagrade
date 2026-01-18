@@ -1,4 +1,5 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:drift/drift.dart';
+import '../database/database.dart' as db;
 import '../database/database_helper.dart';
 import '../models/nota.dart';
 import '../models/nota_detalle.dart';
@@ -10,8 +11,8 @@ class NotasRepository {
 
   /// Obtiene todas las notas agrupadas por estudiante y corte evaluativo
   Future<List<Nota>> obtenerTodas() async {
-    final db = await _dbHelper.database;
-    final maps = await db.rawQuery('''
+    final database = await _dbHelper.database;
+    final rows = await database.customSelect('''
       SELECT
         ROW_NUMBER() OVER (ORDER BY e.id, ce.id) as id,
         e.id as estudianteId,
@@ -19,19 +20,19 @@ class NotasRepository {
         e.numero_identidad as numeroIdentidad,
         ce.id as corteEvaluativoId,
         ce.nombre as corteEvaluativoNombre,
-        ce.puntosTotales as puntosTotales,
-        COALESCE(SUM(cri.puntosObtenidos), 0) as puntosObtenidos,
+        ce.puntos_totales as puntosTotales,
+        COALESCE(SUM(cri.puntos_obtenidos), 0) as puntosObtenidos,
         CASE
-          WHEN ce.puntosTotales > 0 THEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2)
+          WHEN ce.puntos_totales > 0 THEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2)
           ELSE 0
         END as porcentaje,
         CASE
-          WHEN ce.puntosTotales > 0 THEN
+          WHEN ce.puntos_totales > 0 THEN
             CASE
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 90 THEN 'A'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 80 THEN 'B'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 70 THEN 'C'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 60 THEN 'D'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 90 THEN 'A'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 80 THEN 'B'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 70 THEN 'C'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 60 THEN 'D'
               ELSE 'F'
             END
           ELSE 'N/A'
@@ -40,14 +41,15 @@ class NotasRepository {
       FROM estudiantes e
       INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
       INNER JOIN cortes_evaluativos ce ON ce.anio_lectivo_id = ea.anio_lectivo_id
-      LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
-      LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
+      LEFT JOIN indicadores_evaluacion ie ON ie.corte_id = ce.id AND ie.activo = 1
+      LEFT JOIN criterios_evaluacion cri ON cri.indicador_id = ie.id AND cri.activo = 1
       LEFT JOIN notas_estudiantes ne ON ne.estudiante_id = e.id AND ne.criterio_id = cri.id
       WHERE e.activo = 1 AND ce.activo = 1 AND ea.activo = 1
-      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
+      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntos_totales
       ORDER BY e.estudiante, ce.numero
-    ''');
-    return List.generate(maps.length, (i) => Nota.fromMap(maps[i]));
+    ''').get();
+
+    return rows.map((row) => Nota.fromMap(row.data)).toList();
   }
 
   /// Obtiene notas filtradas por asignación de estudiante
@@ -58,8 +60,8 @@ class NotasRepository {
     required int gradoId,
     required int seccionId,
   }) async {
-    final db = await _dbHelper.database;
-    final maps = await db.rawQuery('''
+    final database = await _dbHelper.database;
+    final rows = await database.customSelect('''
       SELECT
         ROW_NUMBER() OVER (ORDER BY e.id, ce.id) as id,
         e.id as estudianteId,
@@ -67,19 +69,19 @@ class NotasRepository {
         e.numero_identidad as numeroIdentidad,
         ce.id as corteEvaluativoId,
         ce.nombre as corteEvaluativoNombre,
-        ce.puntosTotales as puntosTotales,
-        COALESCE(SUM(cri.puntosObtenidos), 0) as puntosObtenidos,
+        ce.puntos_totales as puntosTotales,
+        COALESCE(SUM(cri.puntos_obtenidos), 0) as puntosObtenidos,
         CASE
-          WHEN ce.puntosTotales > 0 THEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2)
+          WHEN ce.puntos_totales > 0 THEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2)
           ELSE 0
         END as porcentaje,
         CASE
-          WHEN ce.puntosTotales > 0 THEN
+          WHEN ce.puntos_totales > 0 THEN
             CASE
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 90 THEN 'A'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 80 THEN 'B'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 70 THEN 'C'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 60 THEN 'D'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 90 THEN 'A'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 80 THEN 'B'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 70 THEN 'C'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 60 THEN 'D'
               ELSE 'F'
             END
           ELSE 'N/A'
@@ -88,8 +90,8 @@ class NotasRepository {
       FROM estudiantes e
       INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
       INNER JOIN cortes_evaluativos ce ON ce.anio_lectivo_id = ea.anio_lectivo_id
-      LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
-      LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
+      LEFT JOIN indicadores_evaluacion ie ON ie.corte_id = ce.id AND ie.activo = 1
+      LEFT JOIN criterios_evaluacion cri ON cri.indicador_id = ie.id AND cri.activo = 1
       LEFT JOIN notas_estudiantes ne ON ne.estudiante_id = e.id AND ne.criterio_id = cri.id
       WHERE e.activo = 1
         AND ce.activo = 1
@@ -99,17 +101,24 @@ class NotasRepository {
         AND ea.asignatura_id = ?
         AND ea.grado_id = ?
         AND ea.seccion_id = ?
-      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
+      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntos_totales
       ORDER BY e.estudiante, ce.numero
-    ''', [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId]);
-    return List.generate(maps.length, (i) => Nota.fromMap(maps[i]));
+    ''', variables: [
+      Variable.withInt(anioLectivoId),
+      Variable.withInt(colegioId),
+      Variable.withInt(asignaturaId),
+      Variable.withInt(gradoId),
+      Variable.withInt(seccionId),
+    ]).get();
+
+    return rows.map((row) => Nota.fromMap(row.data)).toList();
   }
 
   /// Busca notas por nombre de estudiante o número de identidad
   Future<List<Nota>> buscar(String query) async {
-    final db = await _dbHelper.database;
+    final database = await _dbHelper.database;
     final searchTerm = '%${query.toLowerCase()}%';
-    final maps = await db.rawQuery('''
+    final rows = await database.customSelect('''
       SELECT
         ROW_NUMBER() OVER (ORDER BY e.id, ce.id) as id,
         e.id as estudianteId,
@@ -117,19 +126,19 @@ class NotasRepository {
         e.numero_identidad as numeroIdentidad,
         ce.id as corteEvaluativoId,
         ce.nombre as corteEvaluativoNombre,
-        ce.puntosTotales as puntosTotales,
-        COALESCE(SUM(cri.puntosObtenidos), 0) as puntosObtenidos,
+        ce.puntos_totales as puntosTotales,
+        COALESCE(SUM(cri.puntos_obtenidos), 0) as puntosObtenidos,
         CASE
-          WHEN ce.puntosTotales > 0 THEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2)
+          WHEN ce.puntos_totales > 0 THEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2)
           ELSE 0
         END as porcentaje,
         CASE
-          WHEN ce.puntosTotales > 0 THEN
+          WHEN ce.puntos_totales > 0 THEN
             CASE
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 90 THEN 'A'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 80 THEN 'B'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 70 THEN 'C'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 60 THEN 'D'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 90 THEN 'A'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 80 THEN 'B'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 70 THEN 'C'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 60 THEN 'D'
               ELSE 'F'
             END
           ELSE 'N/A'
@@ -138,17 +147,21 @@ class NotasRepository {
       FROM estudiantes e
       INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
       INNER JOIN cortes_evaluativos ce ON ce.anio_lectivo_id = ea.anio_lectivo_id
-      LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
-      LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
+      LEFT JOIN indicadores_evaluacion ie ON ie.corte_id = ce.id AND ie.activo = 1
+      LEFT JOIN criterios_evaluacion cri ON cri.indicador_id = ie.id AND cri.activo = 1
       LEFT JOIN notas_estudiantes ne ON ne.estudiante_id = e.id AND ne.criterio_id = cri.id
       WHERE e.activo = 1
         AND ce.activo = 1
         AND ea.activo = 1
         AND (LOWER(e.estudiante) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)
-      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
+      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntos_totales
       ORDER BY e.estudiante, ce.numero
-    ''', [searchTerm, searchTerm]);
-    return List.generate(maps.length, (i) => Nota.fromMap(maps[i]));
+    ''', variables: [
+      Variable.withString(searchTerm),
+      Variable.withString(searchTerm),
+    ]).get();
+
+    return rows.map((row) => Nota.fromMap(row.data)).toList();
   }
 
   /// Busca notas filtradas por asignación y búsqueda
@@ -160,9 +173,9 @@ class NotasRepository {
     required int seccionId,
     required String query,
   }) async {
-    final db = await _dbHelper.database;
+    final database = await _dbHelper.database;
     final searchTerm = '%${query.toLowerCase()}%';
-    final maps = await db.rawQuery('''
+    final rows = await database.customSelect('''
       SELECT
         ROW_NUMBER() OVER (ORDER BY e.id, ce.id) as id,
         e.id as estudianteId,
@@ -170,19 +183,19 @@ class NotasRepository {
         e.numero_identidad as numeroIdentidad,
         ce.id as corteEvaluativoId,
         ce.nombre as corteEvaluativoNombre,
-        ce.puntosTotales as puntosTotales,
-        COALESCE(SUM(cri.puntosObtenidos), 0) as puntosObtenidos,
+        ce.puntos_totales as puntosTotales,
+        COALESCE(SUM(cri.puntos_obtenidos), 0) as puntosObtenidos,
         CASE
-          WHEN ce.puntosTotales > 0 THEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2)
+          WHEN ce.puntos_totales > 0 THEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2)
           ELSE 0
         END as porcentaje,
         CASE
-          WHEN ce.puntosTotales > 0 THEN
+          WHEN ce.puntos_totales > 0 THEN
             CASE
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 90 THEN 'A'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 80 THEN 'B'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 70 THEN 'C'
-              WHEN ROUND((COALESCE(SUM(cri.puntosObtenidos), 0) * 100.0) / ce.puntosTotales, 2) >= 60 THEN 'D'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 90 THEN 'A'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 80 THEN 'B'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 70 THEN 'C'
+              WHEN ROUND((COALESCE(SUM(cri.puntos_obtenidos), 0) * 100.0) / ce.puntos_totales, 2) >= 60 THEN 'D'
               ELSE 'F'
             END
           ELSE 'N/A'
@@ -191,8 +204,8 @@ class NotasRepository {
       FROM estudiantes e
       INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
       INNER JOIN cortes_evaluativos ce ON ce.anio_lectivo_id = ea.anio_lectivo_id
-      LEFT JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
-      LEFT JOIN criterios_evaluacion cri ON cri.indicadorId = ie.id AND cri.activo = 1
+      LEFT JOIN indicadores_evaluacion ie ON ie.corte_id = ce.id AND ie.activo = 1
+      LEFT JOIN criterios_evaluacion cri ON cri.indicador_id = ie.id AND cri.activo = 1
       WHERE e.activo = 1
         AND ce.activo = 1
         AND ea.activo = 1
@@ -202,18 +215,19 @@ class NotasRepository {
         AND ea.grado_id = ?
         AND ea.seccion_id = ?
         AND (LOWER(e.estudiante) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)
-      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntosTotales
+      GROUP BY e.id, e.estudiante, e.numero_identidad, ce.id, ce.nombre, ce.puntos_totales
       ORDER BY e.estudiante, ce.numero
-    ''', [
-      anioLectivoId,
-      colegioId,
-      asignaturaId,
-      gradoId,
-      seccionId,
-      searchTerm,
-      searchTerm
-    ]);
-    return List.generate(maps.length, (i) => Nota.fromMap(maps[i]));
+    ''', variables: [
+      Variable.withInt(anioLectivoId),
+      Variable.withInt(colegioId),
+      Variable.withInt(asignaturaId),
+      Variable.withInt(gradoId),
+      Variable.withInt(seccionId),
+      Variable.withString(searchTerm),
+      Variable.withString(searchTerm),
+    ]).get();
+
+    return rows.map((row) => Nota.fromMap(row.data)).toList();
   }
 
   /// Obtiene notas detalladas para tabla Excel por corte específico
@@ -226,22 +240,23 @@ class NotasRepository {
     required int corteId,
     String? searchQuery,
   }) async {
-    final db = await _dbHelper.database;
+    final database = await _dbHelper.database;
 
     // Check if asignatura or grado is qualitative
-    final asignaturaMaps = await db.rawQuery(
-        'SELECT cualitativo FROM asignaturas WHERE id = ?', [asignaturaId]);
-    final gradoMaps = await db.rawQuery(
-        'SELECT cualitativo FROM grados WHERE id = ?', [gradoId]);
+    final asignaturaRow = await (database.select(database.asignaturas)
+          ..where((t) => t.id.equals(asignaturaId)))
+        .getSingleOrNull();
+    final gradoRow = await (database.select(database.grados)
+          ..where((t) => t.id.equals(gradoId)))
+        .getSingleOrNull();
 
-    final esCualitativaAsignatura = asignaturaMaps.isNotEmpty &&
-        (asignaturaMaps.first['cualitativo'] as int) == 1;
-    final esCualitativoGrado = gradoMaps.isNotEmpty &&
-        (gradoMaps.first['cualitativo'] as int) == 1;
+    final esCualitativaAsignatura =
+        asignaturaRow != null && asignaturaRow.cualitativo;
+    final esCualitativoGrado = gradoRow != null && gradoRow.cualitativo;
     final esCualitativa = esCualitativaAsignatura || esCualitativoGrado;
 
     // Base query for students
-    String studentQuery = '''
+    var studentQuery = '''
       SELECT DISTINCT e.id, e.estudiante, e.numero_identidad
       FROM estudiantes e
       INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
@@ -254,63 +269,71 @@ class NotasRepository {
         AND ea.seccion_id = ?
     ''';
 
-    final List<dynamic> studentParams = [
-      anioLectivoId,
-      colegioId,
-      asignaturaId,
-      gradoId,
-      seccionId
+    final List<Variable> studentParams = [
+      Variable.withInt(anioLectivoId),
+      Variable.withInt(colegioId),
+      Variable.withInt(asignaturaId),
+      Variable.withInt(gradoId),
+      Variable.withInt(seccionId)
     ];
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
       studentQuery +=
           ' AND (LOWER(e.estudiante) LIKE ? OR LOWER(e.numero_identidad) LIKE ?)';
       final searchTerm = '%${searchQuery.toLowerCase()}%';
-      studentParams.add(searchTerm);
-      studentParams.add(searchTerm);
+      studentParams.add(Variable.withString(searchTerm));
+      studentParams.add(Variable.withString(searchTerm));
     }
 
     studentQuery += ' ORDER BY e.estudiante';
 
-    final studentMaps = await db.rawQuery(studentQuery, studentParams);
+    final studentRows = await database
+        .customSelect(studentQuery, variables: studentParams)
+        .get();
 
     final List<NotaDetalle> notasDetalladas = [];
 
-    for (final studentMap in studentMaps) {
+    for (final studentRow in studentRows) {
+      final studentMap = studentRow.data;
       final estudianteId = studentMap['id'] as int;
 
       // Get all indicators for this cut
-      final indicadorMaps = await db.rawQuery('''
-        SELECT ie.id, ie.numero, ie.descripcion, ie.puntosTotales
+      final indicadorRows = await database.customSelect('''
+        SELECT ie.id, ie.numero, ie.descripcion, ie.puntos_totales as puntosTotales
         FROM indicadores_evaluacion ie
-        WHERE ie.corteId = ? AND ie.activo = 1
+        WHERE ie.corte_id = ? AND ie.activo = 1
         ORDER BY ie.numero
-      ''', [corteId]);
+      ''', variables: [Variable.withInt(corteId)]).get();
 
       final List<IndicadorDetalle> indicadores = [];
 
-      for (final indicadorMap in indicadorMaps) {
+      for (final indicadorRow in indicadorRows) {
+        final indicadorMap = indicadorRow.data;
         final indicadorId = indicadorMap['id'] as int;
 
         // Get all criteria for this indicator and student's note
-        final criterioMaps = await db.rawQuery('''
-          SELECT cri.id, cri.numero, cri.descripcion, cri.puntosMaximos,
+        final criterioRows = await database.customSelect('''
+          SELECT cri.id, cri.numero, cri.descripcion, cri.puntos_maximos as puntosMaximos,
                  COALESCE(ne.puntos_obtenidos, 0) as puntosObtenidos,
                  ne.valor_cualitativo
           FROM criterios_evaluacion cri
           LEFT JOIN notas_estudiantes ne ON ne.criterio_id = cri.id AND ne.estudiante_id = ?
-          WHERE cri.indicadorId = ? AND cri.activo = 1
+          WHERE cri.indicador_id = ? AND cri.activo = 1
           ORDER BY cri.numero
-        ''', [estudianteId, indicadorId]);
+        ''', variables: [
+          Variable.withInt(estudianteId),
+          Variable.withInt(indicadorId)
+        ]).get();
 
-        final List<CriterioDetalle> criterios = criterioMaps
-            .map((map) => CriterioDetalle(
-                  id: map['id'] as int,
-                  numero: map['numero'] as int,
-                  descripcion: map['descripcion'] as String,
-                  puntosMaximos: (map['puntosMaximos'] as num).toDouble(),
-                  puntosObtenidos: (map['puntosObtenidos'] as num).toDouble(),
-                  valorCualitativo: map['valor_cualitativo'] as String?,
+        final List<CriterioDetalle> criterios = criterioRows
+            .map((row) => CriterioDetalle(
+                  id: row.data['id'] as int,
+                  numero: row.data['numero'] as int,
+                  descripcion: row.data['descripcion'] as String,
+                  puntosMaximos: (row.data['puntosMaximos'] as num).toDouble(),
+                  puntosObtenidos:
+                      (row.data['puntosObtenidos'] as num).toDouble(),
+                  valorCualitativo: row.data['valor_cualitativo'] as String?,
                 ))
             .toList();
 
@@ -342,10 +365,10 @@ class NotasRepository {
           : _calcularCalificacion(porcentaje);
 
       // Get cut name
-      final corteMaps = await db.rawQuery(
-          'SELECT nombre FROM cortes_evaluativos WHERE id = ?', [corteId]);
-      final corteNombre =
-          corteMaps.isNotEmpty ? corteMaps.first['nombre'] as String : 'Corte';
+      final corteRow = await (database.select(database.cortesEvaluativos)
+            ..where((t) => t.id.equals(corteId)))
+          .getSingleOrNull();
+      final corteNombre = corteRow?.nombre ?? 'Corte';
 
       notasDetalladas.add(NotaDetalle(
         estudianteId: estudianteId,
@@ -368,62 +391,60 @@ class NotasRepository {
   /// Obtiene los cortes evaluativos para un año lectivo
   Future<List<CorteEvaluativo>> obtenerCortesPorAnioLectivo(
       int anioLectivoId) async {
-    final db = await _dbHelper.database;
-
-    // First check if cortes exist for this academic year
-    final existingMaps = await db.rawQuery('''
-      SELECT ce.*
-      FROM cortes_evaluativos ce
-      WHERE ce.activo = 1 AND ce.anio_lectivo_id = ?
-      ORDER BY ce.numero
-    ''', [anioLectivoId]);
-
-    if (existingMaps.isNotEmpty) {
-      // Check if they have indicators before returning
-      // (Optional, but ensures structure if cortes existed but indicators didn't)
-    }
+    final database = await _dbHelper.database;
 
     // Ensure default structure exists (centralized logic)
     final CorteEvaluativoRepository corteRepo = CorteEvaluativoRepository();
     await corteRepo.asegurarEstructuraDefault(anioLectivoId);
 
-    // Fetch the cortes
-    final maps = await db.rawQuery('''
-      SELECT ce.*
-      FROM cortes_evaluativos ce
-      WHERE ce.activo = 1 AND ce.anio_lectivo_id = ?
-      ORDER BY ce.numero
-    ''', [anioLectivoId]);
+    // Fetch the cortes using drift select
+    final rows = await (database.select(database.cortesEvaluativos)
+          ..where((t) => t.activo.equals(true))
+          ..where((t) => t.anioLectivoId.equals(anioLectivoId))
+          ..orderBy([(t) => OrderingTerm(expression: t.numero)]))
+        .get();
 
-    return List.generate(maps.length, (i) => CorteEvaluativo.fromMap(maps[i]));
+    return rows
+        .map((row) => CorteEvaluativo(
+              id: row.id,
+              anioLectivoId: row.anioLectivoId,
+              numero: row.numero,
+              nombre: row.nombre,
+              puntosTotales: row.puntosTotales,
+              activo: row.activo,
+            ))
+        .toList();
   }
 
   /// Obtiene los cortes evaluativos que tienen indicadores configurados
   Future<List<int>> obtenerCortesConIndicadores() async {
-    final db = await _dbHelper.database;
-    final maps = await db.rawQuery('''
+    final database = await _dbHelper.database;
+    final rows = await database.customSelect('''
       SELECT DISTINCT ce.id
       FROM cortes_evaluativos ce
-      INNER JOIN indicadores_evaluacion ie ON ie.corteId = ce.id AND ie.activo = 1
+      INNER JOIN indicadores_evaluacion ie ON ie.corte_id = ce.id AND ie.activo = 1
       WHERE ce.activo = 1
       ORDER BY ce.numero
-    ''');
-    return maps.map((m) => m['id'] as int).toList();
+    ''').get();
+    return rows.map((row) => row.data['id'] as int).toList();
   }
 
   /// Obtiene los años lectivos que tienen notas para un colegio específico
   Future<List<int>> obtenerAniosConNotasDesdeColegio(int colegioId) async {
-    final db = await _dbHelper.database;
-    final maps = await db.rawQuery('''
+    final database = await _dbHelper.database;
+    // Corregido el join para usar la tabla correcta y ruta de relaciones
+    final rows = await database.customSelect('''
       SELECT DISTINCT ce.anio_lectivo_id
-      FROM notas n
-      INNER JOIN estudiantes e ON n.estudiante_id = e.id
+      FROM notas_estudiantes ne
+      INNER JOIN estudiantes e ON ne.estudiante_id = e.id
       INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
-      INNER JOIN cortes_evaluativos ce ON n.corte_evaluativo_id = ce.id
+      INNER JOIN criterios_evaluacion cri ON ne.criterio_id = cri.id
+      INNER JOIN indicadores_evaluacion ie ON cri.indicador_id = ie.id
+      INNER JOIN cortes_evaluativos ce ON ie.corte_id = ce.id
       WHERE ea.colegio_id = ? AND e.activo = 1 AND ea.activo = 1 AND ce.activo = 1
       ORDER BY ce.anio_lectivo_id DESC
-    ''', [colegioId]);
-    return maps.map((m) => m['anio_lectivo_id'] as int).toList();
+    ''', variables: [Variable.withInt(colegioId)]).get();
+    return rows.map((row) => row.data['anio_lectivo_id'] as int).toList();
   }
 
   String _calcularModa(List<IndicadorDetalle> indicadores) {
@@ -439,7 +460,10 @@ class NotasRepository {
     }
     if (frecuencias.isEmpty) return '-';
     final maxFreq = frecuencias.values.reduce((a, b) => a > b ? a : b);
-    final tied = frecuencias.entries.where((e) => e.value == maxFreq).map((e) => e.key).toList();
+    final tied = frecuencias.entries
+        .where((e) => e.value == maxFreq)
+        .map((e) => e.key)
+        .toList();
     if (tied.length == 1) return tied[0];
     // En caso de empate, ordenar por valor ascendente y tomar el del medio
     final order = {'AA': 4, 'AS': 3, 'AF': 2};
@@ -463,16 +487,14 @@ class NotasRepository {
     required String valorCualitativo,
     required double puntosObtenidos,
   }) async {
-    final db = await _dbHelper.database;
-    await db.insert(
-      'notas_estudiantes',
-      {
-        'estudiante_id': estudianteId,
-        'criterio_id': criterioId,
-        'valor_cualitativo': valorCualitativo,
-        'puntos_obtenidos': puntosObtenidos,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    final database = await _dbHelper.database;
+    await database.into(database.notasEstudiantes).insertOnConflictUpdate(
+          db.NotasEstudiantesCompanion.insert(
+            estudianteId: estudianteId,
+            criterioId: criterioId,
+            valorCualitativo: Value(valorCualitativo),
+            puntosObtenidos: puntosObtenidos,
+          ),
+        );
   }
 }

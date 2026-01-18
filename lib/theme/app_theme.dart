@@ -60,7 +60,6 @@ class AppTheme {
         brightness: brightness,
         primary: primaryColor,
         surface: surface,
-        background: background,
       ),
       scaffoldBackgroundColor: background,
       appBarTheme: AppBarTheme(
@@ -77,7 +76,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: card,
         elevation: isDark ? 4 : 2,
-        shadowColor: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+        shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side:
@@ -89,7 +88,7 @@ class AppTheme {
         fillColor: isDark ? surface : Colors.grey[100],
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+          borderSide: BorderSide(color: primaryColor.withValues(alpha: 0.3)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -113,7 +112,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 4,
-          shadowColor: primaryColor.withOpacity(0.3),
+          shadowColor: primaryColor.withValues(alpha: 0.3),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -139,7 +138,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: isDark ? card : Colors.grey[200],
-        selectedColor: primaryColor.withOpacity(0.2),
+        selectedColor: primaryColor.withValues(alpha: 0.2),
         labelStyle: TextStyle(color: isDark ? textP : textP, fontSize: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),

@@ -17,8 +17,9 @@ class _AnioLectivoTabState extends State<AnioLectivoTab> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      context.read<AnioLectivoProvider>().cargarAnios();
+    Future.microtask(() async {
+      if (!mounted) return;
+      await context.read<AnioLectivoProvider>().cargarTodosLosAnios();
     });
   }
 
@@ -58,7 +59,7 @@ class _AnioLectivoTabState extends State<AnioLectivoTab> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (anioController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Completa el campo año')),
@@ -71,13 +72,18 @@ class _AnioLectivoTabState extends State<AnioLectivoTab> {
                 anio: int.parse(anioController.text),
               );
 
+              final provider = context.read<AnioLectivoProvider>();
+              final navigator = Navigator.of(context);
+
               if (anio == null) {
-                context.read<AnioLectivoProvider>().crearAnio(nuevoAnio);
+                await provider.crearAnio(nuevoAnio);
               } else {
-                context.read<AnioLectivoProvider>().actualizarAnio(nuevoAnio);
+                await provider.actualizarAnio(nuevoAnio);
               }
 
-              Navigator.pop(context);
+              if (navigator.mounted) {
+                navigator.pop();
+              }
             },
             child: Text(anio == null ? 'Agregar' : 'Actualizar'),
           ),
@@ -136,7 +142,7 @@ class _AnioLectivoTabState extends State<AnioLectivoTab> {
                   return CustomCard(
                     onTap: () => provider.seleccionarAnio(anio),
                     backgroundColor: provider.selectedAnio?.id == anio.id
-                        ? AppTheme.primaryColor.withOpacity(0.2)
+                        ? AppTheme.primaryColor.withValues(alpha: 0.2)
                         : AppTheme.surfaceColor,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +187,7 @@ class _AnioLectivoTabState extends State<AnioLectivoTab> {
                             Row(
                               children: [
                                 const Text(
-                                  'Predeterminado:',
+                                  'Activo:',
                                   style: TextStyle(
                                     color: AppTheme.textTertiary,
                                     fontSize: 12,
@@ -190,12 +196,12 @@ class _AnioLectivoTabState extends State<AnioLectivoTab> {
                                 const SizedBox(width: 8),
                                 Switch(
                                   value: anio.activo,
-                                  activeThumbColor: AppTheme.primaryColor,
+                                  activeColor: AppTheme.primaryColor,
                                   inactiveThumbColor: AppTheme.textTertiary,
                                   inactiveTrackColor: AppTheme.cardColor,
-                                  onChanged: (value) {
+                                  onChanged: (value) async {
                                     final updatedAnio = anio.copyWith(activo: value);
-                                    provider.actualizarAnio(updatedAnio);
+                                    await provider.actualizarAnio(updatedAnio);
                                   },
                                 ),
                               ],
@@ -213,20 +219,25 @@ class _AnioLectivoTabState extends State<AnioLectivoTab> {
                                       context: context,
                                       itemName: anio.nombre,
                                       onConfirm: () async {
+                                        final messenger = ScaffoldMessenger.of(context);
                                         final exito = await provider.eliminarAnio(anio.id!);
-                                        if (!exito && mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
+                                        if (!exito) {
+                                          messenger.showSnackBar(
                                             const SnackBar(
-                                              content: Text('No se puede eliminar el año lectivo porque tiene estudiantes, colegios u otros datos asociados'),
-                                              backgroundColor: AppTheme.errorColor,
+                                              content: Text(
+                                                  'No se puede eliminar el año lectivo porque tiene estudiantes, colegios u otros datos asociados'),
+                                              backgroundColor:
+                                                  AppTheme.errorColor,
                                               duration: Duration(seconds: 4),
                                             ),
                                           );
-                                        } else if (exito && mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
+                                        } else {
+                                          messenger.showSnackBar(
                                             const SnackBar(
-                                              content: Text('Año lectivo eliminado correctamente'),
-                                              backgroundColor: AppTheme.primaryColor,
+                                              content: Text(
+                                                  'Año lectivo eliminado correctamente'),
+                                              backgroundColor:
+                                                  AppTheme.primaryColor,
                                             ),
                                           );
                                         }

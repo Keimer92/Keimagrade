@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drift/drift.dart';
 import '../models/estudiante.dart';
 import '../repositories/estudiante_repository.dart';
 import '../database/database_helper.dart';
@@ -103,7 +104,7 @@ class EstudianteProvider extends ChangeNotifier {
         _selectedEstudiante = null;
       }
     } catch (e) {
-      print('Error al cargar estudiantes: $e');
+      debugPrint('Error al cargar estudiantes: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -194,7 +195,7 @@ class EstudianteProvider extends ChangeNotifier {
       await _repository.crear(estudiante);
       await cargarEstudiantes();
     } catch (e) {
-      print('Error al crear estudiante: $e');
+      debugPrint('Error al crear estudiante: $e');
     }
   }
 
@@ -203,7 +204,7 @@ class EstudianteProvider extends ChangeNotifier {
       await _repository.actualizar(estudiante);
       await cargarEstudiantes();
     } catch (e) {
-      print('Error al actualizar estudiante: $e');
+      debugPrint('Error al actualizar estudiante: $e');
     }
   }
 
@@ -212,7 +213,7 @@ class EstudianteProvider extends ChangeNotifier {
       await _repository.eliminar(id);
       await cargarEstudiantes();
     } catch (e) {
-      print('Error al eliminar estudiante: $e');
+      debugPrint('Error al eliminar estudiante: $e');
     }
   }
 
@@ -243,7 +244,7 @@ class EstudianteProvider extends ChangeNotifier {
 
       await cargarEstudiantes();
     } catch (e) {
-      print('Error al crear estudiante con asignaciones: $e');
+      debugPrint('Error al crear estudiante con asignaciones: $e');
       rethrow;
     }
   }
@@ -252,11 +253,12 @@ class EstudianteProvider extends ChangeNotifier {
   Future<List<Map<String, dynamic>>> obtenerAsignacionesEstudiante(
       int estudianteId) async {
     final db = await DatabaseHelper().database;
-    final maps = await db.rawQuery('''
+    final rows = await db.customSelect('''
       SELECT ea.* FROM estudiantes_asignaciones ea
       WHERE ea.estudiante_id = ? AND ea.activo = 1
-    ''', [estudianteId]);
-    return maps;
+    ''', variables: [Variable.withInt(estudianteId)]).get();
+    
+    return rows.map((row) => row.data).toList();
   }
 
   // ============== MÉTODOS DE IMPORTACIÓN EXCEL ==============

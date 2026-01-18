@@ -28,7 +28,7 @@ class ColegioProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('Error al cargar colegios: $e');
+      debugPrint('Error al cargar colegios: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -59,7 +59,7 @@ class ColegioProvider extends ChangeNotifier {
         await _repository.crear(colegio);
       }
     } catch (e) {
-      print('Error al crear colegios por defecto: $e');
+      debugPrint('Error al crear colegios por defecto: $e');
     }
   }
 
@@ -73,7 +73,7 @@ class ColegioProvider extends ChangeNotifier {
       await _repository.crear(colegio);
       await cargarColegios();
     } catch (e) {
-      print('Error al crear colegio: $e');
+      debugPrint('Error al crear colegio: $e');
     }
   }
 
@@ -82,7 +82,7 @@ class ColegioProvider extends ChangeNotifier {
       await _repository.actualizar(colegio);
       await cargarColegios();
     } catch (e) {
-      print('Error al actualizar colegio: $e');
+      debugPrint('Error al actualizar colegio: $e');
     }
   }
 
@@ -91,7 +91,7 @@ class ColegioProvider extends ChangeNotifier {
       await _repository.eliminar(id);
       await cargarColegios();
     } catch (e) {
-      print('Error al eliminar colegio: $e');
+      debugPrint('Error al eliminar colegio: $e');
     }
   }
 }

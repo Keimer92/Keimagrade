@@ -22,7 +22,7 @@ class IndicadorEvaluacionProvider extends ChangeNotifier {
         _selectedIndicador = _indicadores.first;
       }
     } catch (e) {
-      print('Error al cargar indicadores: $e');
+      debugPrint('Error al cargar indicadores: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -41,7 +41,7 @@ class IndicadorEvaluacionProvider extends ChangeNotifier {
         _selectedIndicador = _indicadores.first;
       }
     } catch (e) {
-      print('Error al cargar indicadores por corte: $e');
+      debugPrint('Error al cargar indicadores por corte: $e');
     } finally {
       if (showLoading) {
         _isLoading = false;
@@ -62,7 +62,7 @@ class IndicadorEvaluacionProvider extends ChangeNotifier {
       await _repository.crear(indicador);
       await cargarIndicadores();
     } catch (e) {
-      print('Error al crear indicador: $e');
+      debugPrint('Error al crear indicador: $e');
     }
   }
 
@@ -71,7 +71,7 @@ class IndicadorEvaluacionProvider extends ChangeNotifier {
       await _repository.actualizar(indicador);
       await cargarIndicadores();
     } catch (e) {
-      print('Error al actualizar indicador: $e');
+      debugPrint('Error al actualizar indicador: $e');
     }
   }
 
@@ -80,7 +80,7 @@ class IndicadorEvaluacionProvider extends ChangeNotifier {
       await _repository.eliminar(id);
       await cargarIndicadores();
     } catch (e) {
-      print('Error al eliminar indicador: $e');
+      debugPrint('Error al eliminar indicador: $e');
     }
   }
 }

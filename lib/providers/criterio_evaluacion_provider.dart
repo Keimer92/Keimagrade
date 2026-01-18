@@ -21,7 +21,7 @@ class CriterioEvaluacionProvider extends ChangeNotifier {
         _selectedCriterio = _criterios.first;
       }
     } catch (e) {
-      print('Error al cargar criterios: $e');
+      debugPrint('Error al cargar criterios: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -37,7 +37,7 @@ class CriterioEvaluacionProvider extends ChangeNotifier {
         _selectedCriterio = _criterios.first;
       }
     } catch (e) {
-      print('Error al cargar criterios por indicador: $e');
+      debugPrint('Error al cargar criterios por indicador: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -54,7 +54,7 @@ class CriterioEvaluacionProvider extends ChangeNotifier {
       await _repository.crear(criterio);
       await cargarCriterios();
     } catch (e) {
-      print('Error al crear criterio: $e');
+      debugPrint('Error al crear criterio: $e');
     }
   }
 
@@ -63,7 +63,7 @@ class CriterioEvaluacionProvider extends ChangeNotifier {
       await _repository.actualizar(criterio);
       await cargarCriterios();
     } catch (e) {
-      print('Error al actualizar criterio: $e');
+      debugPrint('Error al actualizar criterio: $e');
     }
   }
 
@@ -72,7 +72,7 @@ class CriterioEvaluacionProvider extends ChangeNotifier {
       await _repository.eliminar(id);
       await cargarCriterios();
     } catch (e) {
-      print('Error al eliminar criterio: $e');
+      debugPrint('Error al eliminar criterio: $e');
     }
   }
 
@@ -80,7 +80,7 @@ class CriterioEvaluacionProvider extends ChangeNotifier {
     try {
       await _repository.eliminarPorIndicador(indicadorId);
     } catch (e) {
-      print('Error al eliminar criterios por indicador: $e');
+      debugPrint('Error al eliminar criterios por indicador: $e');
     }
   }
 }

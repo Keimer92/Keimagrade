@@ -67,7 +67,7 @@ class DebuggingTab extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.2),
+              color: AppTheme.primaryColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -121,34 +121,39 @@ class DebuggingTab extends StatelessWidget {
 
       // Refresh all providers to reflect the new default data
       // Using try-catch for each provider to handle potential database factory issues
+      if (!context.mounted) return;
       try {
         await context.read<AnioLectivoProvider>().cargarAnios();
       } catch (e) {
-        print('Error reloading AnioLectivoProvider: $e');
+        debugPrint('Error reloading AnioLectivoProvider: $e');
       }
 
+      if (!context.mounted) return;
       try {
         await context.read<ColegioProvider>().cargarColegios();
       } catch (e) {
-        print('Error reloading ColegioProvider: $e');
+        debugPrint('Error reloading ColegioProvider: $e');
       }
 
+      if (!context.mounted) return;
       try {
         await context.read<AsignaturaProvider>().cargarAsignaturas();
       } catch (e) {
-        print('Error reloading AsignaturaProvider: $e');
+        debugPrint('Error reloading AsignaturaProvider: $e');
       }
 
+      if (!context.mounted) return;
       try {
         await context.read<GradoProvider>().cargarGrados();
       } catch (e) {
-        print('Error reloading GradoProvider: $e');
+        debugPrint('Error reloading GradoProvider: $e');
       }
 
+      if (!context.mounted) return;
       try {
         await context.read<SeccionProvider>().cargarSecciones();
       } catch (e) {
-        print('Error reloading SeccionProvider: $e');
+        debugPrint('Error reloading SeccionProvider: $e');
       }
 
       // Show success message
@@ -194,34 +199,39 @@ class DebuggingTab extends StatelessWidget {
 
       // Refresh all providers to reflect the cleared data
       // Using try-catch for each provider to handle potential database factory issues
+      if (!context.mounted) return;
       try {
         await context.read<AnioLectivoProvider>().cargarAnios();
       } catch (e) {
-        print('Error reloading AnioLectivoProvider: $e');
+        debugPrint('Error reloading AnioLectivoProvider: $e');
       }
 
+      if (!context.mounted) return;
       try {
         await context.read<ColegioProvider>().cargarColegios();
       } catch (e) {
-        print('Error reloading ColegioProvider: $e');
+        debugPrint('Error reloading ColegioProvider: $e');
       }
 
+      if (!context.mounted) return;
       try {
         await context.read<AsignaturaProvider>().cargarAsignaturas();
       } catch (e) {
-        print('Error reloading AsignaturaProvider: $e');
+        debugPrint('Error reloading AsignaturaProvider: $e');
       }
 
+      if (!context.mounted) return;
       try {
         await context.read<GradoProvider>().cargarGrados();
       } catch (e) {
-        print('Error reloading GradoProvider: $e');
+        debugPrint('Error reloading GradoProvider: $e');
       }
 
+      if (!context.mounted) return;
       try {
         await context.read<SeccionProvider>().cargarSecciones();
       } catch (e) {
-        print('Error reloading SeccionProvider: $e');
+        debugPrint('Error reloading SeccionProvider: $e');
       }
 
       // Show success message

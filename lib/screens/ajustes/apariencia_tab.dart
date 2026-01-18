@@ -87,7 +87,7 @@ class _AparienciaTabState extends State<AparienciaTab> {
                         key: ValueKey(screen['id'] ?? 'screen_$index'),
                         color: isEnabled
                             ? AppTheme.surfaceColor
-                            : AppTheme.surfaceColor.withOpacity(0.5),
+                            : AppTheme.surfaceColor.withValues(alpha: 0.5),
                         elevation: 4,
                         shadowColor: AppTheme.shadowColor,
                         margin: const EdgeInsets.only(bottom: 8),
@@ -131,7 +131,7 @@ class _AparienciaTabState extends State<AparienciaTab> {
                                 value: isEnabled,
                                 onChanged: (value) => aparienciaProvider
                                     .toggleScreen(index, value),
-                                activeThumbColor: AppTheme.primaryColor,
+                                activeColor: AppTheme.primaryColor,
                                 inactiveTrackColor: AppTheme.cardColor,
                               ),
                               // Handle para arrastrar
@@ -162,7 +162,7 @@ class _AparienciaTabState extends State<AparienciaTab> {
                   decoration: BoxDecoration(
                     color: AppTheme.surfaceColor,
                     border: Border(
-                        top: BorderSide(color: Colors.grey.withOpacity(0.2))),
+                        top: BorderSide(color: Colors.grey.withValues(alpha: 0.2))),
                   ),
                   child: Row(
                     children: [
@@ -256,10 +256,10 @@ class _AparienciaTabState extends State<AparienciaTab> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.withOpacity(0.3),
+            color: isSelected ? color : Colors.grey.withValues(alpha: 0.3),
             width: 2,
           ),
         ),
@@ -328,7 +328,7 @@ class _AparienciaTabState extends State<AparienciaTab> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: color.withOpacity(0.4),
+                        color: color.withValues(alpha: 0.4),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),

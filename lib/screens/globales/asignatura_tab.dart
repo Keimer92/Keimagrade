@@ -17,8 +17,9 @@ class _AsignaturaTabState extends State<AsignaturaTab> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      context.read<AsignaturaProvider>().cargarAsignaturas();
+    Future.microtask(() async {
+      if (!mounted) return;
+      await context.read<AsignaturaProvider>().cargarAsignaturas();
     });
   }
 
@@ -64,10 +65,12 @@ class _AsignaturaTabState extends State<AsignaturaTab> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              if (nombreController.text.isEmpty || codigoController.text.isEmpty) {
+            onPressed: () async {
+              if (nombreController.text.isEmpty ||
+                  codigoController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Completa los campos requeridos')),
+                  const SnackBar(
+                      content: Text('Completa los campos requeridos')),
                 );
                 return;
               }
@@ -78,13 +81,16 @@ class _AsignaturaTabState extends State<AsignaturaTab> {
                 codigo: codigoController.text,
               );
 
+              final provider = context.read<AsignaturaProvider>();
+              final navigator = Navigator.of(context);
+
               if (asignatura == null) {
-                context.read<AsignaturaProvider>().crearAsignatura(nuevaAsignatura);
+                await provider.crearAsignatura(nuevaAsignatura);
               } else {
-                context.read<AsignaturaProvider>().actualizarAsignatura(nuevaAsignatura);
+                await provider.actualizarAsignatura(nuevaAsignatura);
               }
 
-              Navigator.pop(context);
+              navigator.pop();
             },
             child: Text(asignatura == null ? 'Agregar' : 'Actualizar'),
           ),
@@ -143,7 +149,7 @@ class _AsignaturaTabState extends State<AsignaturaTab> {
                   return CustomCard(
                     onTap: () => provider.seleccionarAsignatura(asignatura),
                     backgroundColor: provider.selectedAsignatura?.id == asignatura.id
-                        ? AppTheme.primaryColor.withOpacity(0.2)
+                        ? AppTheme.primaryColor.withValues(alpha: 0.2)
                         : AppTheme.surfaceColor,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,12 +203,12 @@ class _AsignaturaTabState extends State<AsignaturaTab> {
                                 const SizedBox(width: 8),
                                 Switch(
                                   value: asignatura.cualitativo,
-                                  activeThumbColor: AppTheme.primaryColor,
+                                  activeColor: AppTheme.primaryColor,
                                   inactiveThumbColor: AppTheme.textTertiary,
                                   inactiveTrackColor: AppTheme.cardColor,
-                                  onChanged: (value) {
+                                  onChanged: (value) async {
                                     final updatedAsignatura = asignatura.copyWith(cualitativo: value);
-                                    provider.actualizarAsignatura(updatedAsignatura);
+                                    await provider.actualizarAsignatura(updatedAsignatura);
                                   },
                                 ),
                               ],
@@ -219,8 +225,8 @@ class _AsignaturaTabState extends State<AsignaturaTab> {
                                     DialogHelper.showDeleteConfirmation(
                                       context: context,
                                       itemName: asignatura.nombre,
-                                      onConfirm: () {
-                                        provider.eliminarAsignatura(asignatura.id!);
+                                      onConfirm: () async {
+                                        await provider.eliminarAsignatura(asignatura.id!);
                                       },
                                     );
                                   },

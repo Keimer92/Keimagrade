@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -31,23 +32,26 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
   void initState() {
     super.initState();
     Future.microtask(() async {
+      if (!mounted) return;
       await context.read<AnioLectivoProvider>().cargarAnios();
+      if (!mounted) return;
       await context.read<ColegioProvider>().cargarColegios();
+      if (!mounted) return;
       await context.read<AsignaturaProvider>().cargarAsignaturas();
+      if (!mounted) return;
       await context.read<GradoProvider>().cargarGrados();
+      if (!mounted) return;
       await context.read<SeccionProvider>().cargarSecciones();
 
       // Forzar selección de año por defecto e iniciar cascada total
       if (mounted) {
         final anioProvider = context.read<AnioLectivoProvider>();
-        final anioPorDefecto = anioProvider.anios.firstWhere(
-          (a) => a.porDefecto == 1,
-          orElse: () => anioProvider.anios.isNotEmpty
-              ? anioProvider.anios.first
-              : anioProvider.anios.first,
-        );
-
         if (anioProvider.anios.isNotEmpty) {
+          final anioPorDefecto = anioProvider.anios.firstWhere(
+            (a) => a.porDefecto,
+            orElse: () => anioProvider.anios.first,
+          );
+
           anioProvider.seleccionarAnio(anioPorDefecto);
           await _seleccionarEnCascadaDesdeAnio(anioPorDefecto.id!);
         }
@@ -103,7 +107,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
               asignaciones.map((a) => a['asignatura_id'] as int).toSet();
         }
       } catch (e) {
-        print('Error loading student assignments: $e');
+        debugPrint('Error loading student assignments: $e');
       }
     } else {
       // Initialize selected subjects with all default subjects for new student
@@ -199,7 +203,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 Consumer<AnioLectivoProvider>(
                   builder: (context, provider, _) =>
                       DropdownButtonFormField<int>(
-                    initialValue: selectedAnioId,
+                    value: selectedAnioId,
                     decoration: InputDecoration(
                       labelText: 'Año Lectivo',
                       border: OutlineInputBorder(
@@ -224,7 +228,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 Consumer<ColegioProvider>(
                   builder: (context, provider, _) =>
                       DropdownButtonFormField<int>(
-                    initialValue: selectedColegioId,
+                    value: selectedColegioId,
                     decoration: InputDecoration(
                       labelText: 'Colegio',
                       border: OutlineInputBorder(
@@ -260,7 +264,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                     decoration: BoxDecoration(
                       border: Border.all(
                           color: AppTheme.getTextTertiary(context)
-                              .withOpacity(0.3)),
+                              .withValues(alpha: 0.3)),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
@@ -293,7 +297,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 Consumer<GradoProvider>(
                   builder: (context, provider, _) =>
                       DropdownButtonFormField<int>(
-                    initialValue: selectedGradoId,
+                    value: selectedGradoId,
                     decoration: InputDecoration(
                       labelText: 'Grado',
                       border: OutlineInputBorder(
@@ -318,7 +322,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                 Consumer<SeccionProvider>(
                   builder: (context, provider, _) =>
                       DropdownButtonFormField<int>(
-                    initialValue: selectedSeccionId,
+                    value: selectedSeccionId,
                     decoration: InputDecoration(
                       labelText: 'Sección',
                       border: OutlineInputBorder(
@@ -445,8 +449,10 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                     await provider.actualizarEstudiante(nuevoEstudiante);
                   }
 
+                  if (!mounted) return;
                   Navigator.pop(context);
                 } catch (e) {
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error: ${e.toString()}')),
                   );
@@ -465,6 +471,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
       // Solicitar permisos en Android
       if (Platform.isAndroid) {
         final status = await Permission.storage.request();
+        if (!mounted) return;
         if (!status.isGranted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -484,9 +491,11 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
 
       if (result == null) return;
 
+      if (!mounted) return;
       final file = File(result.files.single.path!);
       await _procesarArchivoExcel(file);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al importar: ${e.toString()}')),
       );
@@ -497,7 +506,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     final provider = context.read<EstudianteProvider>();
 
     // Mostrar diálogo de progreso
-    showDialog(
+    unawaited(showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
@@ -511,21 +520,25 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
           ],
         ),
       ),
-    );
+    ));
 
     try {
       // Leer el archivo Excel
-      final bytes = file.readAsBytesSync();
+      final bytes = await file.readAsBytes();
       final excelFile = excel.Excel.decodeBytes(bytes);
       final sheet = excelFile.tables.values.first;
 
       // Obtener encabezados
       final headers = _obtenerEncabezados(sheet);
 
+      if (!mounted) return;
+
       // Validar encabezados usando el provider
       if (!provider.validarEncabezados(headers)) {
-        Navigator.pop(context);
-        _mostrarErrorEncabezados(headers);
+        if (mounted) {
+          Navigator.pop(context);
+          _mostrarErrorEncabezados(headers);
+        }
         return;
       }
 
@@ -559,20 +572,24 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
         }
       }
 
+      if (!mounted) return;
       Navigator.pop(context);
 
       if (datosImportacion.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('No se encontraron estudiantes válidos en el archivo')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content:
+                    Text('No se encontraron estudiantes válidos en el archivo')),
+          );
+        }
         return;
       }
 
       // Mostrar resumen y confirmar importación
       _mostrarResumenImportacion(datosImportacion, errores);
     } catch (e) {
+      if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -668,7 +685,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
 
   Future<void> _confirmarImportacion(List<DatosImportacionExcel> datos) async {
     // Mostrar diálogo de progreso
-    showDialog(
+    unawaited(showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
@@ -682,25 +699,34 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
           ],
         ),
       ),
-    );
+    ));
 
     try {
       // Llamar al provider para hacer la importación
       final resultado =
           await context.read<EstudianteProvider>().importarDatosExcel(datos);
 
+      if (!mounted) return;
       Navigator.pop(context);
 
       // Recargar providers relacionados
-      context.read<AnioLectivoProvider>().cargarAnios();
-      context.read<ColegioProvider>().cargarColegios();
-      context.read<AsignaturaProvider>().cargarAsignaturas();
-      context.read<GradoProvider>().cargarGrados();
-      context.read<SeccionProvider>().cargarSecciones();
+      final anioP = context.read<AnioLectivoProvider>();
+      final colegioP = context.read<ColegioProvider>();
+      final asignaturaP = context.read<AsignaturaProvider>();
+      final gradoP = context.read<GradoProvider>();
+      final seccionP = context.read<SeccionProvider>();
+
+      await anioP.cargarAnios();
+      await colegioP.cargarColegios();
+      await asignaturaP.cargarAsignaturas();
+      await gradoP.cargarGrados();
+      await seccionP.cargarSecciones();
 
       // Mostrar resultado
+      if (!mounted) return;
       _mostrarResultadoImportacion(resultado);
     } catch (e) {
+      if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -751,12 +777,12 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
 
     return estudiantes.where((estudiante) {
       // Filter by search query
-      bool matchesSearch = query.isEmpty ||
+      final bool matchesSearch = query.isEmpty ||
           estudiante.nombreCompleto.toLowerCase().contains(query) ||
           (estudiante.numeroIdentidad?.toLowerCase().contains(query) ?? false);
 
       // Filter by gender
-      bool matchesGender = selectedSexoFilter == null ||
+      final bool matchesGender = selectedSexoFilter == null ||
           estudiante.sexo == selectedSexoFilter;
 
       return matchesSearch && matchesGender;
@@ -809,9 +835,6 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
   Future<void> _seleccionarEnCascadaDesdeAnio(int anioLectivoId) async {
     final estudianteProvider = context.read<EstudianteProvider>();
     final colegioProvider = context.read<ColegioProvider>();
-    final asignaturaProvider = context.read<AsignaturaProvider>();
-    final gradoProvider = context.read<GradoProvider>();
-    final seccionProvider = context.read<SeccionProvider>();
 
     // Obtener colegios disponibles y seleccionar el primero
     final colegiosIds =
@@ -839,8 +862,6 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
       int anioLectivoId, int colegioId) async {
     final estudianteProvider = context.read<EstudianteProvider>();
     final asignaturaProvider = context.read<AsignaturaProvider>();
-    final gradoProvider = context.read<GradoProvider>();
-    final seccionProvider = context.read<SeccionProvider>();
 
     // Obtener asignaturas disponibles y seleccionar la primera
     final asignaturasIds = await estudianteProvider
@@ -868,7 +889,6 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
       int anioLectivoId, int colegioId, int asignaturaId) async {
     final estudianteProvider = context.read<EstudianteProvider>();
     final gradoProvider = context.read<GradoProvider>();
-    final seccionProvider = context.read<SeccionProvider>();
 
     // Obtener grados disponibles y seleccionar el primero
     final gradosIds = await estudianteProvider.obtenerGradosDisponibles(
@@ -1229,7 +1249,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
     required Function(String?) onChanged,
   }) =>
       DropdownButtonFormField<String>(
-        initialValue:
+        value:
             value != 'Seleccionar' && items.contains(value) ? value : null,
         decoration: InputDecoration(
           labelText: label,
@@ -1305,7 +1325,7 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
                   onTap: () => provider.seleccionarEstudiante(estudiante),
                   backgroundColor:
                       provider.selectedEstudiante?.id == estudiante.id
-                          ? Theme.of(context).primaryColor.withOpacity(0.2)
+                          ? Theme.of(context).primaryColor.withValues(alpha: 0.2)
                           : Theme.of(context).cardColor,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1398,29 +1418,6 @@ class _EstudiantesScreenState extends State<EstudiantesScreen> {
             ),
           );
         },
-      );
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Icon(icon, size: 16, color: AppTheme.getTextTertiary(context)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                  color: AppTheme.getTextTertiary(context), fontSize: 12),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
       );
 }
 

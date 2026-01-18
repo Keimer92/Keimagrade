@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/anio_lectivo.dart';
 import '../repositories/anio_lectivo_repository.dart';
 import '../repositories/corte_evaluativo_repository.dart';
-import '../repositories/estudiante_repository.dart';
 
 class AnioLectivoProvider extends ChangeNotifier {
   final AnioLectivoRepository _repository = AnioLectivoRepository();
@@ -15,6 +14,7 @@ class AnioLectivoProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Future<void> cargarAnios() async {
+    if (_isLoading) return;
     _isLoading = true;
     notifyListeners();
     try {
@@ -38,7 +38,7 @@ class AnioLectivoProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('Error al cargar años: $e');
+      debugPrint('Error al cargar años: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -46,15 +46,19 @@ class AnioLectivoProvider extends ChangeNotifier {
   }
 
   Future<void> cargarTodosLosAnios() async {
+    if (_isLoading) return;
     _isLoading = true;
     notifyListeners();
     try {
       _anios = await _repository.obtenerTodos();
       if (_anios.isNotEmpty) {
-        _selectedAnio = _anios.first;
+        _selectedAnio = _anios.firstWhere(
+          (a) => a.porDefecto,
+          orElse: () => _anios.first,
+        );
       }
     } catch (e) {
-      print('Error al cargar años: $e');
+      debugPrint('Error al cargar años: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -63,16 +67,38 @@ class AnioLectivoProvider extends ChangeNotifier {
 
   Future<void> _cargarDatosPorDefecto() async {
     try {
-      // Crear año lectivo por defecto
-      final anioDefecto = AnioLectivo(
-        anio: 2026,
-        porDefecto: true,
-      );
-      final anioId = await _repository.crear(anioDefecto);
-      // Crear cortes por defecto para el año por defecto
-      await _crearCortesPorDefecto(anioId);
+      // Verificar si ya existe el año 2026
+      final todos = await _repository.obtenerTodos();
+      final existe2026 = todos.any((a) => a.anio == 2026);
+
+      if (!existe2026) {
+        // Crear año lectivo por defecto
+        final anioDefecto = AnioLectivo(
+          anio: 2026,
+          porDefecto: true,
+          activo: true,
+        );
+        try {
+          final anioId = await _repository.crear(anioDefecto);
+          // Crear cortes por defecto para el año por defecto
+          await _crearCortesPorDefecto(anioId);
+        } catch (e) {
+          // Si falla por restricción UNIQUE, es que otro proceso lo creó justo ahora
+          if (e.toString().contains('UNIQUE constraint failed')) {
+            debugPrint('El año 2026 ya fue creado por otro proceso.');
+          } else {
+            rethrow;
+          }
+        }
+      } else {
+        // Si existe pero no estaba activo (por eso llegamos aquí), activarlo
+        final anioExistente = todos.firstWhere((a) => a.anio == 2026);
+        if (!anioExistente.activo) {
+          await _repository.actualizar(anioExistente.copyWith(activo: true));
+        }
+      }
     } catch (e) {
-      print('Error al crear año por defecto: $e');
+      debugPrint('Error al cargar datos por defecto: $e');
     }
   }
 
@@ -80,10 +106,10 @@ class AnioLectivoProvider extends ChangeNotifier {
     try {
       final corteRepository = CorteEvaluativoRepository();
       await corteRepository.asegurarEstructuraDefault(anioLectivoId);
-      print(
+      debugPrint(
           'Cortes, indicadores y criterios por defecto creados para el año lectivo $anioLectivoId');
     } catch (e) {
-      print('Error al crear estructura por defecto: $e');
+      debugPrint('Error al crear estructura por defecto: $e');
     }
   }
 
@@ -93,34 +119,52 @@ class AnioLectivoProvider extends ChangeNotifier {
   }
 
   Future<void> crearAnio(AnioLectivo anio) async {
+    if (_isLoading) return;
     try {
+      _isLoading = true;
+      notifyListeners();
+
       // Verificar si ya existe un año con el mismo número
       final todosLosAnios = await _repository.obtenerTodos();
       final existeAnio = todosLosAnios.any((a) => a.anio == anio.anio);
 
       if (existeAnio) {
-        print('Ya existe un año lectivo con el año ${anio.anio}');
+        debugPrint('Ya existe un año lectivo con el año ${anio.anio}');
+        _isLoading = false;
+        notifyListeners();
         return;
       }
 
-      // Asegurar que el nuevo año no esté activo por defecto
+      // Por defecto, el nuevo año estará activo para que aparezca en los filtros
       final anioParaCrear = AnioLectivo(
         anio: anio.anio,
-        activo: false,
+        activo: true,
       );
       final nuevoAnioId = await _repository.crear(anioParaCrear);
 
       // Crear cortes por defecto para el nuevo año
       await _crearCortesPorDefecto(nuevoAnioId);
 
-      await cargarTodosLosAnios();
+      // Recargar la lista de años
+      _anios = await _repository.obtenerTodos();
+      
+      // Seleccionar el nuevo año automáticamente
+      _selectedAnio = _anios.firstWhere((a) => a.id == nuevoAnioId);
+      
     } catch (e) {
-      print('Error al crear año: $e');
+      debugPrint('Error al crear año: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<void> actualizarAnio(AnioLectivo anio) async {
+    if (_isLoading) return;
     try {
+      _isLoading = true;
+      notifyListeners();
+
       // Si se está intentando desactivar el único año activo, impedirlo
       if (!anio.activo) {
         final otrosActivos = await _repository.obtenerActivos();
@@ -128,48 +172,58 @@ class AnioLectivoProvider extends ChangeNotifier {
             otrosActivos.where((a) => a.id != anio.id).length;
 
         if (otrosActivosSinEste == 0) {
-          print('No se puede desactivar el único año lectivo activo');
+          debugPrint('No se puede desactivar el único año lectivo activo');
+          _isLoading = false;
+          notifyListeners();
           return;
         }
       }
 
-      // Si se está activando un año, desactivar todos los demás
-      if (anio.activo) {
-        final todosLosAnios = await _repository.obtenerTodos();
-        for (final otroAnio in todosLosAnios) {
-          if (otroAnio.id != anio.id && otroAnio.activo) {
-            final otroActualizado = otroAnio.copyWith(activo: false);
-            await _repository.actualizar(otroActualizado);
-          }
-        }
-      }
-
       await _repository.actualizar(anio);
-      await cargarTodosLosAnios();
+      _anios = await _repository.obtenerTodos();
+      
+      // Actualizar el año seleccionado si es el mismo
+      if (_selectedAnio?.id == anio.id) {
+        _selectedAnio = _anios.firstWhere((a) => a.id == anio.id);
+      }
     } catch (e) {
-      print('Error al actualizar año: $e');
+      debugPrint('Error al actualizar año: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<bool> eliminarAnio(int id) async {
+    if (_isLoading) return false;
     try {
-      // Verificar si el año tiene asignaciones de estudiantes
-      final estudianteRepository = EstudianteRepository();
-      final colegiosConAsignacion = await estudianteRepository
-          .obtenerColegiosConAsignacion(anioLectivoId: id);
+      _isLoading = true;
+      notifyListeners();
 
-      if (colegiosConAsignacion.isNotEmpty) {
-        // El año tiene datos relacionados, no se puede eliminar
-        return false;
+      final resultado = await _repository.eliminar(id);
+      if (resultado > 0) {
+        _anios = await _repository.obtenerTodos();
+        
+        // Si el año eliminado era el seleccionado, seleccionar otro
+        if (_selectedAnio?.id == id) {
+          if (_anios.isNotEmpty) {
+            _selectedAnio = _anios.firstWhere(
+              (a) => a.porDefecto,
+              orElse: () => _anios.first,
+            );
+          } else {
+            _selectedAnio = null;
+          }
+        }
+        return true;
       }
-
-      // No hay datos relacionados, proceder con la eliminación
-      await _repository.eliminar(id);
-      await cargarTodosLosAnios();
-      return true;
-    } catch (e) {
-      print('Error al eliminar año: $e');
       return false;
+    } catch (e) {
+      debugPrint('Error al eliminar año: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

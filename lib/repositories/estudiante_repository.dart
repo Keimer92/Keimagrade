@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart';
+import '../database/database.dart' as db;
 import '../database/database_helper.dart';
 import '../models/estudiante.dart';
 
@@ -5,70 +7,57 @@ class EstudianteRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   Future<List<Estudiante>> obtenerTodos() async {
-    final db = await _dbHelper.database;
-    final maps = await db.query('estudiantes');
-    return List.generate(maps.length, (i) => Estudiante.fromMap(maps[i]));
+    final database = await _dbHelper.database;
+    final estudiantes = await database.estudiantes.select().get();
+    return estudiantes.map(_fromDrift).toList();
   }
 
   Future<List<Estudiante>> obtenerActivos() async {
-    final db = await _dbHelper.database;
-    final maps = await db.query(
-      'estudiantes',
-      where: 'activo = ?',
-      whereArgs: [1],
-    );
-    return List.generate(maps.length, (i) => Estudiante.fromMap(maps[i]));
+    final database = await _dbHelper.database;
+    final estudiantes = await (database.estudiantes.select()
+      ..where((tbl) => tbl.activo.equals(true)))
+      .get();
+    return estudiantes.map(_fromDrift).toList();
   }
 
   Future<Estudiante?> obtenerPorId(int id) async {
-    final db = await _dbHelper.database;
-    final maps = await db.query(
-      'estudiantes',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    if (maps.isNotEmpty) {
-      return Estudiante.fromMap(maps.first);
+    final database = await _dbHelper.database;
+    final estudiantes = await (database.estudiantes.select()
+      ..where((tbl) => tbl.id.equals(id)))
+      .get();
+    if (estudiantes.isNotEmpty) {
+      return _fromDrift(estudiantes.first);
     }
     return null;
   }
 
   /// Busca un estudiante por nombre completo
   Future<Estudiante?> buscarPorNombreCompleto(String nombreCompleto) async {
-    final db = await _dbHelper.database;
-    final maps = await db.query(
-      'estudiantes',
-      where: 'LOWER(estudiante) = ?',
-      whereArgs: [nombreCompleto.toLowerCase().trim()],
-    );
-    if (maps.isNotEmpty) {
-      return Estudiante.fromMap(maps.first);
-    }
-    return null;
+    final database = await _dbHelper.database;
+    final estudiante = await (database.estudiantes.select()
+      ..where((tbl) => tbl.estudiante.lower().equals(nombreCompleto.toLowerCase().trim())))
+      .getSingleOrNull();
+    return estudiante != null ? _fromDrift(estudiante) : null;
   }
 
   Future<int> crear(Estudiante estudiante) async {
-    final db = await _dbHelper.database;
-    return db.insert('estudiantes', estudiante.toMap());
+    final database = await _dbHelper.database;
+    return database.into(database.estudiantes).insert(_toCompanion(estudiante));
   }
 
-  Future<int> actualizar(Estudiante estudiante) async {
-    final db = await _dbHelper.database;
-    return db.update(
-      'estudiantes',
-      estudiante.toMap(),
-      where: 'id = ?',
-      whereArgs: [estudiante.id],
-    );
+  Future<bool> actualizar(Estudiante estudiante) async {
+    final database = await _dbHelper.database;
+    final affectedRows = await (database.estudiantes.update()
+      ..where((tbl) => tbl.id.equals(estudiante.id!)))
+      .write(_toCompanion(estudiante));
+    return affectedRows > 0;
   }
 
   Future<int> eliminar(int id) async {
-    final db = await _dbHelper.database;
-    return db.delete(
-      'estudiantes',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    final database = await _dbHelper.database;
+    return (database.estudiantes.delete()
+      ..where((tbl) => tbl.id.equals(id)))
+      .go();
   }
 
   // ============== MÉTODOS PARA ASIGNACIONES ==============
@@ -82,13 +71,16 @@ class EstudianteRepository {
     required int gradoId,
     required int seccionId,
   }) async {
-    final db = await _dbHelper.database;
-    final maps = await db.query(
-      'estudiantes_asignaciones',
-      where: 'estudiante_id = ? AND anio_lectivo_id = ? AND colegio_id = ? AND asignatura_id = ? AND grado_id = ? AND seccion_id = ?',
-      whereArgs: [estudianteId, anioLectivoId, colegioId, asignaturaId, gradoId, seccionId],
-    );
-    return maps.isNotEmpty;
+    final database = await _dbHelper.database;
+    final asignacion = await (database.estudiantesAsignaciones.select()
+      ..where((tbl) => tbl.estudianteId.equals(estudianteId))
+      ..where((tbl) => tbl.anioLectivoId.equals(anioLectivoId))
+      ..where((tbl) => tbl.colegioId.equals(colegioId))
+      ..where((tbl) => tbl.asignaturaId.equals(asignaturaId))
+      ..where((tbl) => tbl.gradoId.equals(gradoId))
+      ..where((tbl) => tbl.seccionId.equals(seccionId)))
+      .getSingleOrNull();
+    return asignacion != null;
   }
 
   /// Crea una asignación de estudiante
@@ -100,19 +92,41 @@ class EstudianteRepository {
     required int gradoId,
     required int seccionId,
   }) async {
-    final db = await _dbHelper.database;
-    return db.insert('estudiantes_asignaciones', {
-      'estudiante_id': estudianteId,
-      'anio_lectivo_id': anioLectivoId,
-      'colegio_id': colegioId,
-      'asignatura_id': asignaturaId,
-      'grado_id': gradoId,
-      'seccion_id': seccionId,
-      'activo': 1,
-    });
+    final database = await _dbHelper.database;
+    return database.into(database.estudiantesAsignaciones).insert(
+      db.EstudiantesAsignacionesCompanion.insert(
+        estudianteId: estudianteId,
+        anioLectivoId: anioLectivoId,
+        colegioId: colegioId,
+        asignaturaId: asignaturaId,
+        gradoId: gradoId,
+        seccionId: seccionId,
+        activo: const Value(true),
+      ),
+    );
   }
 
-  /// Obtiene estudiantes filtrados por asignación
+  /// Obtiene los IDs de estudiantes asignados a un grupo específico
+  Future<List<int>> obtenerEstudiantesAsignados({
+    required int anioLectivoId,
+    required int colegioId,
+    required int asignaturaId,
+    required int gradoId,
+    required int seccionId,
+  }) async {
+    final database = await _dbHelper.database;
+    final asignaciones = await (database.estudiantesAsignaciones.select()
+      ..where((tbl) => tbl.anioLectivoId.equals(anioLectivoId))
+      ..where((tbl) => tbl.colegioId.equals(colegioId))
+      ..where((tbl) => tbl.asignaturaId.equals(asignaturaId))
+      ..where((tbl) => tbl.gradoId.equals(gradoId))
+      ..where((tbl) => tbl.seccionId.equals(seccionId))
+      ..where((tbl) => tbl.activo.equals(true)))
+      .get();
+    return asignaciones.map((a) => a.estudianteId).toList();
+  }
+
+  /// Obtiene los objetos Estudiante asignados a un grupo específico con filtro opcional de sexo
   Future<List<Estudiante>> obtenerPorAsignacion({
     required int anioLectivoId,
     required int colegioId,
@@ -121,162 +135,229 @@ class EstudianteRepository {
     required int seccionId,
     String? sexo,
   }) async {
-    final db = await _dbHelper.database;
-    String query = '''
-      SELECT DISTINCT e.* FROM estudiantes e
-      INNER JOIN estudiantes_asignaciones ea ON e.id = ea.estudiante_id
-      WHERE ea.anio_lectivo_id = ?
-        AND ea.colegio_id = ?
-        AND ea.asignatura_id = ?
-        AND ea.grado_id = ?
-        AND ea.seccion_id = ?
-        AND e.activo = 1
-        AND ea.activo = 1
-    ''';
+    final database = await _dbHelper.database;
 
-    List<dynamic> args = [anioLectivoId, colegioId, asignaturaId, gradoId, seccionId];
+    final query = database.select(database.estudiantes).join([
+      innerJoin(
+        database.estudiantesAsignaciones,
+        database.estudiantesAsignaciones.estudianteId
+            .equalsExp(database.estudiantes.id),
+      ),
+    ])
+      ..where(
+          database.estudiantesAsignaciones.anioLectivoId.equals(anioLectivoId))
+      ..where(database.estudiantesAsignaciones.colegioId.equals(colegioId))
+      ..where(
+          database.estudiantesAsignaciones.asignaturaId.equals(asignaturaId))
+      ..where(database.estudiantesAsignaciones.gradoId.equals(gradoId))
+      ..where(database.estudiantesAsignaciones.seccionId.equals(seccionId))
+      ..where(database.estudiantesAsignaciones.activo.equals(true));
 
     if (sexo != null && sexo.isNotEmpty) {
-      query += ' AND e.sexo = ?';
-      args.add(sexo);
+      query.where(database.estudiantes.sexo.equals(sexo));
     }
 
-    query += ' ORDER BY e.estudiante';
+    query.orderBy([OrderingTerm(expression: database.estudiantes.estudiante)]);
 
-    final maps = await db.rawQuery(query, args);
-    return List.generate(maps.length, (i) => Estudiante.fromMap(maps[i]));
+    final rows = await query.get();
+    return rows
+        .map((row) => _fromDrift(row.readTable(database.estudiantes)))
+        .toList();
   }
+
+  /// Obtiene los objetos Estudiante asignados a un grupo específico
+  Future<List<Estudiante>> obtenerEstudiantesDetalleAsignados({
+    required int anioLectivoId,
+    required int colegioId,
+    required int asignaturaId,
+    required int gradoId,
+    required int seccionId,
+  }) =>
+      obtenerPorAsignacion(
+        anioLectivoId: anioLectivoId,
+        colegioId: colegioId,
+        asignaturaId: asignaturaId,
+        gradoId: gradoId,
+        seccionId: seccionId,
+      );
+
+  /// Elimina una asignación
+  Future<int> eliminarAsignacion({
+    required int estudianteId,
+    required int anioLectivoId,
+    required int colegioId,
+    required int asignaturaId,
+    required int gradoId,
+    required int seccionId,
+  }) async {
+    final database = await _dbHelper.database;
+    return (database.estudiantesAsignaciones.delete()
+      ..where((tbl) => tbl.estudianteId.equals(estudianteId))
+      ..where((tbl) => tbl.anioLectivoId.equals(anioLectivoId))
+      ..where((tbl) => tbl.colegioId.equals(colegioId))
+      ..where((tbl) => tbl.asignaturaId.equals(asignaturaId))
+      ..where((tbl) => tbl.gradoId.equals(gradoId))
+      ..where((tbl) => tbl.seccionId.equals(seccionId)))
+      .go();
+  }
+
+  // Helper methods for conversion
+  Estudiante _fromDrift(db.Estudiante row) => Estudiante(
+      id: row.id,
+      estudiante: row.estudiante,
+      numeroIdentidad: row.numeroIdentidad,
+      telefono: row.telefono,
+      email: row.email,
+      direccion: row.direccion,
+      sexo: row.sexo,
+      activo: row.activo,
+    );
+
+  db.EstudiantesCompanion _toCompanion(Estudiante estudiante) => db.EstudiantesCompanion.insert(
+      id: estudiante.id != null ? Value(estudiante.id!) : const Value.absent(),
+      estudiante: estudiante.estudiante,
+      numeroIdentidad: Value(estudiante.numeroIdentidad),
+      telefono: Value(estudiante.telefono),
+      email: Value(estudiante.email),
+      direccion: Value(estudiante.direccion),
+      sexo: Value(estudiante.sexo),
+      activo: Value(estudiante.activo),
+    );
 
   // ============== MÉTODOS AUXILIARES PARA IMPORTACIÓN ==============
 
   /// Busca o crea un año lectivo por su número de año
   Future<int> buscarOCrearAnioLectivo(int anio) async {
-    final db = await _dbHelper.database;
-    final maps = await db.query(
-      'anos_lectivos',
-      where: 'anio = ?',
-      whereArgs: [anio],
-    );
-    if (maps.isNotEmpty) {
-      return maps.first['id'] as int;
+    final database = await _dbHelper.database;
+    final row = await (database.select(database.anosLectivos)
+          ..where((t) => t.anio.equals(anio)))
+        .getSingleOrNull();
+
+    if (row != null) {
+      return row.id;
     }
     // Crear nuevo año lectivo
-    return db.insert('anos_lectivos', {
-      'anio': anio,
-      'activo': 1,
-      'porDefecto': 0,
-    });
+    return database.into(database.anosLectivos).insert(
+          db.AnosLectivosCompanion.insert(
+            anio: anio,
+            activo: const Value(true),
+            porDefecto: const Value(false),
+          ),
+        );
   }
 
   /// Busca o crea un colegio por nombre
   Future<int> buscarOCrearColegio(String nombre) async {
-    final db = await _dbHelper.database;
-    final maps = await db.query(
-      'colegios',
-      where: 'LOWER(nombre) = ?',
-      whereArgs: [nombre.toLowerCase().trim()],
-    );
-    if (maps.isNotEmpty) {
-      return maps.first['id'] as int;
+    final database = await _dbHelper.database;
+    final row = await (database.select(database.colegios)
+          ..where((t) => t.nombre.lower().equals(nombre.toLowerCase().trim())))
+        .getSingleOrNull();
+
+    if (row != null) {
+      return row.id;
     }
     // Crear nuevo colegio
-    return db.insert('colegios', {
-      'nombre': nombre.trim(),
-      'direccion': '',
-      'telefono': '',
-      'email': '',
-      'director': '',
-      'activo': 1,
-    });
+    return database.into(database.colegios).insert(
+          db.ColegiosCompanion.insert(
+            nombre: nombre.trim(),
+            direccion: '',
+            telefono: '',
+            email: '',
+            director: '',
+            activo: const Value(true),
+          ),
+        );
   }
 
   /// Busca o crea una asignatura por nombre
   Future<int> buscarOCrearAsignatura(String nombre) async {
-    final db = await _dbHelper.database;
-    final maps = await db.query(
-      'asignaturas',
-      where: 'LOWER(nombre) = ?',
-      whereArgs: [nombre.toLowerCase().trim()],
-    );
-    if (maps.isNotEmpty) {
-      return maps.first['id'] as int;
+    final database = await _dbHelper.database;
+    final row = await (database.select(database.asignaturas)
+          ..where((t) => t.nombre.lower().equals(nombre.toLowerCase().trim())))
+        .getSingleOrNull();
+
+    if (row != null) {
+      return row.id;
     }
     // Generar código único
     final codigo = nombre.trim().toUpperCase().substring(0, nombre.length > 3 ? 3 : nombre.length) +
         DateTime.now().millisecondsSinceEpoch.toString().substring(8);
     // Crear nueva asignatura
-    return db.insert('asignaturas', {
-      'nombre': nombre.trim(),
-      'codigo': codigo,
-      'horas': 2,
-      'activo': 1,
-      'cualitativo': 0,
-    });
+    return database.into(database.asignaturas).insert(
+          db.AsignaturasCompanion.insert(
+            nombre: nombre.trim(),
+            codigo: codigo,
+            horas: 2,
+            activo: const Value(true),
+            cualitativo: const Value(false),
+          ),
+        );
   }
 
   /// Busca o crea un grado por nombre
   Future<int> buscarOCrearGrado(String nombre) async {
-    final db = await _dbHelper.database;
-    final maps = await db.query(
-      'grados',
-      where: 'LOWER(nombre) = ?',
-      whereArgs: [nombre.toLowerCase().trim()],
-    );
-    if (maps.isNotEmpty) {
-      return maps.first['id'] as int;
+    final database = await _dbHelper.database;
+    final row = await (database.select(database.grados)
+          ..where((t) => t.nombre.lower().equals(nombre.toLowerCase().trim())))
+        .getSingleOrNull();
+
+    if (row != null) {
+      return row.id;
     }
     // Intentar extraer número del nombre (ej: "1er Grado" -> 1)
     final numeroMatch = RegExp(r'\d+').firstMatch(nombre);
     final numero = numeroMatch != null ? int.parse(numeroMatch.group(0)!) : 0;
     // Crear nuevo grado
-    return db.insert('grados', {
-      'numero': numero,
-      'nombre': nombre.trim(),
-      'activo': 1,
-      'cualitativo': 0,
-    });
+    return database.into(database.grados).insert(
+          db.GradosCompanion.insert(
+            numero: numero,
+            nombre: nombre.trim(),
+            activo: const Value(true),
+            cualitativo: const Value(false),
+          ),
+        );
   }
 
   /// Busca o crea una sección por letra
   Future<int> buscarOCrearSeccion(String letra) async {
-    final db = await _dbHelper.database;
+    final database = await _dbHelper.database;
     final letraLimpia = letra.trim().toUpperCase();
-    final maps = await db.query(
-      'secciones',
-      where: 'UPPER(letra) = ?',
-      whereArgs: [letraLimpia],
-    );
-    if (maps.isNotEmpty) {
-      return maps.first['id'] as int;
+    final row = await (database.select(database.secciones)
+          ..where((t) => t.letra.upper().equals(letraLimpia)))
+        .getSingleOrNull();
+
+    if (row != null) {
+      return row.id;
     }
     // Crear nueva sección
-    return db.insert('secciones', {
-      'letra': letraLimpia,
-      'activo': 1,
-    });
+    return database.into(database.secciones).insert(
+          db.SeccionesCompanion.insert(
+            letra: letraLimpia,
+            activo: const Value(true),
+          ),
+        );
   }
 
   // ============== MÉTODOS PARA FILTROS EN CASCADA ==============
 
   /// Obtiene los IDs de años lectivos que tienen asignaciones para un colegio
   Future<List<int>> obtenerAniosConAsignacion({required int colegioId}) async {
-    final db = await _dbHelper.database;
-    final maps = await db.rawQuery('''
-      SELECT DISTINCT anio_lectivo_id FROM estudiantes_asignaciones
-      WHERE colegio_id = ? AND activo = 1
-      ORDER BY anio_lectivo_id DESC
-    ''', [colegioId]);
-    return maps.map((m) => m['anio_lectivo_id'] as int).toList();
+    final database = await _dbHelper.database;
+    final rows = await database.customSelect(
+      'SELECT DISTINCT anio_lectivo_id FROM estudiantes_asignaciones WHERE colegio_id = ? AND activo = 1 ORDER BY anio_lectivo_id DESC',
+      variables: [Variable.withInt(colegioId)],
+    ).get();
+    return rows.map((row) => row.read<int>('anio_lectivo_id')).toList();
   }
 
   /// Obtiene los IDs de colegios que tienen asignaciones para un año lectivo
   Future<List<int>> obtenerColegiosConAsignacion({required int anioLectivoId}) async {
-    final db = await _dbHelper.database;
-    final maps = await db.rawQuery('''
-      SELECT DISTINCT colegio_id FROM estudiantes_asignaciones
-      WHERE anio_lectivo_id = ? AND activo = 1
-    ''', [anioLectivoId]);
-    return maps.map((m) => m['colegio_id'] as int).toList();
+    final database = await _dbHelper.database;
+    final rows = await database.customSelect(
+      'SELECT DISTINCT colegio_id FROM estudiantes_asignaciones WHERE anio_lectivo_id = ? AND activo = 1',
+      variables: [Variable.withInt(anioLectivoId)],
+    ).get();
+    return rows.map((row) => row.read<int>('colegio_id')).toList();
   }
 
   /// Obtiene los IDs de asignaturas que tienen asignaciones para un año y colegio
@@ -284,12 +365,12 @@ class EstudianteRepository {
     required int anioLectivoId,
     required int colegioId,
   }) async {
-    final db = await _dbHelper.database;
-    final maps = await db.rawQuery('''
-      SELECT DISTINCT asignatura_id FROM estudiantes_asignaciones 
-      WHERE anio_lectivo_id = ? AND colegio_id = ? AND activo = 1
-    ''', [anioLectivoId, colegioId]);
-    return maps.map((m) => m['asignatura_id'] as int).toList();
+    final database = await _dbHelper.database;
+    final rows = await database.customSelect(
+      'SELECT DISTINCT asignatura_id FROM estudiantes_asignaciones WHERE anio_lectivo_id = ? AND colegio_id = ? AND activo = 1',
+      variables: [Variable.withInt(anioLectivoId), Variable.withInt(colegioId)],
+    ).get();
+    return rows.map((row) => row.read<int>('asignatura_id')).toList();
   }
 
   /// Obtiene los IDs de grados que tienen asignaciones para un año, colegio y asignatura
@@ -298,12 +379,16 @@ class EstudianteRepository {
     required int colegioId,
     required int asignaturaId,
   }) async {
-    final db = await _dbHelper.database;
-    final maps = await db.rawQuery('''
-      SELECT DISTINCT grado_id FROM estudiantes_asignaciones 
-      WHERE anio_lectivo_id = ? AND colegio_id = ? AND asignatura_id = ? AND activo = 1
-    ''', [anioLectivoId, colegioId, asignaturaId]);
-    return maps.map((m) => m['grado_id'] as int).toList();
+    final database = await _dbHelper.database;
+    final rows = await database.customSelect(
+      'SELECT DISTINCT grado_id FROM estudiantes_asignaciones WHERE anio_lectivo_id = ? AND colegio_id = ? AND asignatura_id = ? AND activo = 1',
+      variables: [
+        Variable.withInt(anioLectivoId),
+        Variable.withInt(colegioId),
+        Variable.withInt(asignaturaId)
+      ],
+    ).get();
+    return rows.map((row) => row.read<int>('grado_id')).toList();
   }
 
   /// Obtiene los IDs de secciones que tienen asignaciones para un año, colegio, asignatura y grado
@@ -313,11 +398,16 @@ class EstudianteRepository {
     required int asignaturaId,
     required int gradoId,
   }) async {
-    final db = await _dbHelper.database;
-    final maps = await db.rawQuery('''
-      SELECT DISTINCT seccion_id FROM estudiantes_asignaciones 
-      WHERE anio_lectivo_id = ? AND colegio_id = ? AND asignatura_id = ? AND grado_id = ? AND activo = 1
-    ''', [anioLectivoId, colegioId, asignaturaId, gradoId]);
-    return maps.map((m) => m['seccion_id'] as int).toList();
+    final database = await _dbHelper.database;
+    final rows = await database.customSelect(
+      'SELECT DISTINCT seccion_id FROM estudiantes_asignaciones WHERE anio_lectivo_id = ? AND colegio_id = ? AND asignatura_id = ? AND grado_id = ? AND activo = 1',
+      variables: [
+        Variable.withInt(anioLectivoId),
+        Variable.withInt(colegioId),
+        Variable.withInt(asignaturaId),
+        Variable.withInt(gradoId)
+      ],
+    ).get();
+    return rows.map((row) => row.read<int>('seccion_id')).toList();
   }
 }

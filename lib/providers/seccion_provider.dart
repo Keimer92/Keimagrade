@@ -28,7 +28,7 @@ class SeccionProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('Error al cargar secciones: $e');
+      debugPrint('Error al cargar secciones: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -49,7 +49,7 @@ class SeccionProvider extends ChangeNotifier {
         await _repository.crear(seccion);
       }
     } catch (e) {
-      print('Error al crear secciones por defecto: $e');
+      debugPrint('Error al crear secciones por defecto: $e');
     }
   }
 
@@ -63,7 +63,7 @@ class SeccionProvider extends ChangeNotifier {
       await _repository.crear(seccion);
       await cargarSecciones();
     } catch (e) {
-      print('Error al crear sección: $e');
+      debugPrint('Error al crear sección: $e');
     }
   }
 
@@ -72,7 +72,7 @@ class SeccionProvider extends ChangeNotifier {
       await _repository.actualizar(seccion);
       await cargarSecciones();
     } catch (e) {
-      print('Error al actualizar sección: $e');
+      debugPrint('Error al actualizar sección: $e');
     }
   }
 
@@ -81,7 +81,7 @@ class SeccionProvider extends ChangeNotifier {
       await _repository.eliminar(id);
       await cargarSecciones();
     } catch (e) {
-      print('Error al eliminar sección: $e');
+      debugPrint('Error al eliminar sección: $e');
     }
   }
 }

@@ -28,7 +28,7 @@ class AsignaturaProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('Error al cargar asignaturas: $e');
+      debugPrint('Error al cargar asignaturas: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -54,7 +54,7 @@ class AsignaturaProvider extends ChangeNotifier {
         await _repository.crear(asignatura);
       }
     } catch (e) {
-      print('Error al crear asignaturas por defecto: $e');
+      debugPrint('Error al crear asignaturas por defecto: $e');
     }
   }
 
@@ -68,7 +68,7 @@ class AsignaturaProvider extends ChangeNotifier {
       await _repository.crear(asignatura);
       await cargarAsignaturas();
     } catch (e) {
-      print('Error al crear asignatura: $e');
+      debugPrint('Error al crear asignatura: $e');
     }
   }
 
@@ -77,7 +77,7 @@ class AsignaturaProvider extends ChangeNotifier {
       await _repository.actualizar(asignatura);
       await cargarAsignaturas();
     } catch (e) {
-      print('Error al actualizar asignatura: $e');
+      debugPrint('Error al actualizar asignatura: $e');
     }
   }
 
@@ -86,7 +86,7 @@ class AsignaturaProvider extends ChangeNotifier {
       await _repository.eliminar(id);
       await cargarAsignaturas();
     } catch (e) {
-      print('Error al eliminar asignatura: $e');
+      debugPrint('Error al eliminar asignatura: $e');
     }
   }
 }

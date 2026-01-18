@@ -17,8 +17,9 @@ class _SeccionTabState extends State<SeccionTab> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      context.read<SeccionProvider>().cargarSecciones();
+    Future.microtask(() async {
+      if (!mounted) return;
+      await context.read<SeccionProvider>().cargarSecciones();
     });
   }
 
@@ -57,7 +58,7 @@ class _SeccionTabState extends State<SeccionTab> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (letraController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Completa el campo letra')),
@@ -70,13 +71,16 @@ class _SeccionTabState extends State<SeccionTab> {
                 letra: letraController.text.toUpperCase(),
               );
 
+              final provider = context.read<SeccionProvider>();
+              final navigator = Navigator.of(context);
+
               if (seccion == null) {
-                context.read<SeccionProvider>().crearSeccion(nuevaSeccion);
+                await provider.crearSeccion(nuevaSeccion);
               } else {
-                context.read<SeccionProvider>().actualizarSeccion(nuevaSeccion);
+                await provider.actualizarSeccion(nuevaSeccion);
               }
 
-              Navigator.pop(context);
+              navigator.pop();
             },
             child: Text(seccion == null ? 'Agregar' : 'Actualizar'),
           ),
@@ -143,7 +147,7 @@ class _SeccionTabState extends State<SeccionTab> {
                       onTap: () => provider.seleccionarSeccion(seccion),
                       backgroundColor:
                           provider.selectedSeccion?.id == seccion.id
-                              ? AppTheme.secondaryColor.withOpacity(0.2)
+                              ? AppTheme.secondaryColor.withValues(alpha: 0.2)
                               : Theme.of(context).cardColor,
                       padding: const EdgeInsets.all(12),
                       child: Column(
@@ -153,7 +157,7 @@ class _SeccionTabState extends State<SeccionTab> {
                             width: 30,
                             height: 30,
                             decoration: BoxDecoration(
-                              color: AppTheme.secondaryColor.withOpacity(0.2),
+                              color: AppTheme.secondaryColor.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Center(

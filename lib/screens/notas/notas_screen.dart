@@ -36,20 +36,25 @@ class _NotasScreenState extends State<NotasScreen>
   void initState() {
     super.initState();
     Future.microtask(() async {
-      await context.read<AnioLectivoProvider>().cargarAnios();
-      await context.read<ColegioProvider>().cargarColegios();
-      await context.read<AsignaturaProvider>().cargarAsignaturas();
-      await context.read<GradoProvider>().cargarGrados();
-      await context.read<SeccionProvider>().cargarSecciones();
+      final anioP = context.read<AnioLectivoProvider>();
+      final colegioP = context.read<ColegioProvider>();
+      final asignaturaP = context.read<AsignaturaProvider>();
+      final gradoP = context.read<GradoProvider>();
+      final seccionP = context.read<SeccionProvider>();
+
+      await anioP.cargarAnios();
+      await colegioP.cargarColegios();
+      await asignaturaP.cargarAsignaturas();
+      await gradoP.cargarGrados();
+      await seccionP.cargarSecciones();
 
       if (mounted) {
-        final anioProvider = context.read<AnioLectivoProvider>();
-        if (anioProvider.anios.isNotEmpty) {
-          final anioPorDefecto = anioProvider.anios.firstWhere(
-            (a) => a.porDefecto == 1,
-            orElse: () => anioProvider.anios.first,
+        if (anioP.anios.isNotEmpty) {
+          final anioPorDefecto = anioP.anios.firstWhere(
+            (a) => a.porDefecto,
+            orElse: () => anioP.anios.first,
           );
-          anioProvider.seleccionarAnio(anioPorDefecto);
+          anioP.seleccionarAnio(anioPorDefecto);
           await _seleccionarEnCascadaDesdeAnio(anioPorDefecto.id!);
         }
       }
@@ -160,7 +165,7 @@ class _NotasScreenState extends State<NotasScreen>
     );
   }
 
-  void _aplicarFiltros() {
+  Future<void> _aplicarFiltros() async {
     final anioId = context.read<AnioLectivoProvider>().selectedAnio?.id;
     final colegioId = context.read<ColegioProvider>().selectedColegio?.id;
     final asignaturaId =
@@ -168,7 +173,7 @@ class _NotasScreenState extends State<NotasScreen>
     final gradoId = context.read<GradoProvider>().selectedGrado?.id;
     final seccionId = context.read<SeccionProvider>().selectedSeccion?.id;
 
-    context.read<NotasProvider>().aplicarFiltros(
+    await context.read<NotasProvider>().aplicarFiltros(
           anioLectivoId: anioId,
           colegioId: colegioId,
           asignaturaId: asignaturaId,
@@ -176,7 +181,8 @@ class _NotasScreenState extends State<NotasScreen>
           seccionId: seccionId,
         );
 
-    context.read<EstudianteProvider>().aplicarFiltros(
+    if (!mounted) return;
+    await context.read<EstudianteProvider>().aplicarFiltros(
           anioLectivoId: anioId,
           colegioId: colegioId,
           asignaturaId: asignaturaId,
@@ -201,13 +207,16 @@ class _NotasScreenState extends State<NotasScreen>
               .any((c) => c.id == corteProvider.selectedCorte?.id)) {
         final primerCorte = cortesDisponibles.first;
         corteProvider.seleccionarCorte(primerCorte);
-        notasProvider.aplicarFiltroCorte(primerCorte.id);
+        await notasProvider.aplicarFiltroCorte(primerCorte.id);
         await indProvider.cargarIndicadoresPorCorte(primerCorte.id!);
       }
     }
 
     final colegiosIds =
         await notasProvider.obtenerColegiosDisponibles(anioLectivoId);
+
+    if (!mounted) return;
+
     if (colegiosIds.isNotEmpty) {
       if (colegioProvider.selectedColegio == null ||
           !colegiosIds.contains(colegioProvider.selectedColegio?.id)) {
@@ -228,6 +237,8 @@ class _NotasScreenState extends State<NotasScreen>
     final asignaturaProvider = context.read<AsignaturaProvider>();
     final asignaturasIds = await notasProvider.obtenerAsignaturasDisponibles(
         anioLectivoId, colegioId);
+
+    if (!mounted) return;
 
     if (asignaturasIds.isNotEmpty) {
       if (asignaturaProvider.selectedAsignatura == null ||
@@ -250,6 +261,8 @@ class _NotasScreenState extends State<NotasScreen>
     final gradosIds = await notasProvider.obtenerGradosDisponibles(
         anioLectivoId, colegioId, asignaturaId);
 
+    if (!mounted) return;
+
     if (gradosIds.isNotEmpty) {
       if (gradoProvider.selectedGrado == null ||
           !gradosIds.contains(gradoProvider.selectedGrado?.id)) {
@@ -271,6 +284,8 @@ class _NotasScreenState extends State<NotasScreen>
     final seccionesIds = await notasProvider.obtenerSeccionesDisponibles(
         anioLectivoId, colegioIdParam, asignaturaIdParam, gradoIdParam);
 
+    if (!mounted) return;
+
     if (seccionesIds.isNotEmpty) {
       if (seccionProvider.selectedSeccion == null ||
           !seccionesIds.contains(seccionProvider.selectedSeccion?.id)) {
@@ -290,7 +305,10 @@ class _NotasScreenState extends State<NotasScreen>
     final gradoId = context.read<GradoProvider>().selectedGrado?.id;
     final seccionId = context.read<SeccionProvider>().selectedSeccion?.id;
 
-    context.read<NotasProvider>().aplicarFiltros(
+    if (!mounted) return;
+
+    final provider = context.read<NotasProvider>();
+    await provider.aplicarFiltros(
           anioLectivoId: anioId,
           colegioId: colegioId,
           asignaturaId: asignaturaId,
@@ -298,8 +316,10 @@ class _NotasScreenState extends State<NotasScreen>
           seccionId: seccionId,
         );
 
+    if (!mounted) return;
+
     // Aplicar filtros de estudiantes SIN el filtro de sexo durante el proceso en cascada
-    context.read<EstudianteProvider>().aplicarFiltros(
+    await context.read<EstudianteProvider>().aplicarFiltros(
           anioLectivoId: anioId,
           colegioId: colegioId,
           asignaturaId: asignaturaId,
@@ -316,6 +336,7 @@ class _NotasScreenState extends State<NotasScreen>
         await notasProvider.obtenerAniosDisponiblesDesdeColegio(colegioId);
 
     if (aniosIds.isNotEmpty) {
+      if (!mounted) return;
       if (anioProvider.selectedAnio == null ||
           !aniosIds.contains(anioProvider.selectedAnio?.id)) {
         final anioDisponible = anioProvider.anios.firstWhere(
@@ -360,7 +381,7 @@ class _NotasScreenState extends State<NotasScreen>
                               orElse: () => anioProvider.anios.first);
                           anioProvider.seleccionarAnio(selectedAnio);
                           corteProvider.seleccionarCorte(null);
-                          context
+                          await context
                               .read<NotasProvider>()
                               .aplicarFiltroCorte(null);
                           await _seleccionarEnCascadaDesdeAnio(
@@ -393,13 +414,17 @@ class _NotasScreenState extends State<NotasScreen>
                                   (corte) => corte.nombre == value,
                                   orElse: () => cortesFiltrados.first);
                               corteProvider.seleccionarCorte(selectedCorte);
-                              context
-                                  .read<NotasProvider>()
-                                  .aplicarFiltroCorte(selectedCorte.id);
-                              await context
-                                  .read<IndicadorEvaluacionProvider>()
-                                  .cargarIndicadoresPorCorte(selectedCorte.id!);
-                              _aplicarFiltros();
+
+                              final notasP = context.read<NotasProvider>();
+                              final indicadorP =
+                                  context.read<IndicadorEvaluacionProvider>();
+
+                              await notasP.aplicarFiltroCorte(selectedCorte.id);
+                              await indicadorP.cargarIndicadoresPorCorte(
+                                  selectedCorte.id!);
+
+                              if (!mounted) return;
+                              await _aplicarFiltros();
                             }
                           },
                         ),
@@ -497,34 +522,34 @@ class _NotasScreenState extends State<NotasScreen>
                       items: seccionProvider.secciones
                           .map((s) => s.letra)
                           .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          final selected = seccionProvider.secciones.firstWhere(
-                              (s) => s.letra == value,
-                              orElse: () => seccionProvider.secciones.first);
-                          seccionProvider.seleccionarSeccion(selected);
-                          _aplicarFiltros();
-                        }
-                      },
+                      onChanged: (value) async {
+                          if (value != null) {
+                            final selected = seccionProvider.secciones.firstWhere(
+                                (s) => s.letra == value,
+                                orElse: () => seccionProvider.secciones.first);
+                            seccionProvider.seleccionarSeccion(selected);
+                            await _aplicarFiltros();
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 120,
-                    child: _buildDropdown(
-                      label: 'Sexo',
-                      value: _sexoSeleccionado ?? 'Todos',
-                      items: const ['Todos', 'Masculino', 'Femenino'],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _sexoSeleccionado = value == 'Todos' ? null : value;
-                          });
-                          _aplicarFiltros();
-                        }
-                      },
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 120,
+                      child: _buildDropdown(
+                        label: 'Sexo',
+                        value: _sexoSeleccionado ?? 'Todos',
+                        items: const ['Todos', 'Masculino', 'Femenino'],
+                        onChanged: (value) async {
+                          if (value != null) {
+                            setState(() {
+                              _sexoSeleccionado = value == 'Todos' ? null : value;
+                            });
+                            await _aplicarFiltros();
+                          }
+                        },
+                      ),
                     ),
-                  ),
                   const SizedBox(width: 12),
                   ListenableBuilder(
                     listenable:
@@ -598,7 +623,7 @@ class _NotasScreenState extends State<NotasScreen>
     required Function(String?) onChanged,
   }) =>
       DropdownButtonFormField<String>(
-        initialValue:
+        value:
             value != 'Seleccionar' && items.contains(value) ? value : null,
         decoration: InputDecoration(
           labelText: label,
@@ -779,7 +804,7 @@ class _NotasScreenState extends State<NotasScreen>
                   child: Table(
                     border: TableBorder.all(
                         color:
-                            AppTheme.getTextTertiary(context).withOpacity(0.3)),
+                            AppTheme.getTextTertiary(context).withValues(alpha: 0.3)),
                     columnWidths: _buildEditableTableColumnWidths(
                         indicadorProvider.indicadores),
                     children: [
@@ -905,11 +930,11 @@ class _NotasScreenState extends State<NotasScreen>
     return [
       TableRow(
           decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.1)),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1)),
           children: firstRowCells),
       TableRow(
           decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.05)),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.05)),
           children: secondRowCells),
     ];
   }
@@ -1025,11 +1050,13 @@ class _NotasScreenState extends State<NotasScreen>
                               double f = 0;
                               if (val == 'AA') {
                                 f = 1.0;
-                              } else if (val == 'AS')
+                              } else if (val == 'AS') {
                                 f = 0.8;
-                              else if (val == 'AF')
+                              } else if (val == 'AF') {
                                 f = 0.6;
-                              else if (val == 'AI') f = 0.4;
+                              } else if (val == 'AI') {
+                                f = 0.4;
+                              }
                               await context
                                   .read<NotasProvider>()
                                   .guardarNotaManual(
@@ -1089,8 +1116,8 @@ class _NotasScreenState extends State<NotasScreen>
       child: Container(
         padding: const EdgeInsets.all(8),
         color: esCualitativaReal
-            ? _getCalificacionColor(califFinal).withOpacity(0.2)
-            : _getScoreColor(totalPuntosRow, maxTotal).withOpacity(0.2),
+            ? _getCalificacionColor(califFinal).withValues(alpha: 0.2)
+            : _getScoreColor(totalPuntosRow, maxTotal).withValues(alpha: 0.2),
         child: Column(children: [
           Text(esCualitativaReal
               ? califFinal
@@ -1168,18 +1195,18 @@ class _NotasScreenState extends State<NotasScreen>
   }
 
   Color _getScoreColor(double puntos, double maximo) {
-    if (maximo == 0) return Colors.grey.withOpacity(0.1);
+    if (maximo == 0) return Colors.grey.withValues(alpha: 0.1);
     final porcentaje = puntos / maximo;
     if (porcentaje >= 0.9) {
-      return Colors.green.withOpacity(0.1);
+      return Colors.green.withValues(alpha: 0.1);
     } else if (porcentaje >= 0.8) {
-      return Colors.lightGreen.withOpacity(0.1);
+      return Colors.lightGreen.withValues(alpha: 0.1);
     } else if (porcentaje >= 0.7) {
-      return Colors.orange.withOpacity(0.1);
+      return Colors.orange.withValues(alpha: 0.1);
     } else if (porcentaje >= 0.6) {
-      return Colors.deepOrange.withOpacity(0.1);
+      return Colors.deepOrange.withValues(alpha: 0.1);
     }
-    return Colors.red.withOpacity(0.1);
+    return Colors.red.withValues(alpha: 0.1);
   }
 
   List<Estudiante> _filtrarEstudiantes(List<Estudiante> estudiantes) {
@@ -1209,30 +1236,14 @@ class _NotasScreenState extends State<NotasScreen>
   }
 
   Future<void> _guardarTodasLasNotas(BuildContext context) async {
-    final notasProvider = context.read<NotasProvider>();
-    final estudianteProvider = context.read<EstudianteProvider>();
-    final estudiantes = _filtrarEstudiantes(estudianteProvider.estudiantes);
-
-    for (final estudiante in estudiantes) {
-      final notaDetalle = notasProvider.notasDetalladas.firstWhere(
-        (n) => n.estudianteId == estudiante.id,
-        orElse: () => _crearNotaVacia(
-            estudiante,
-            context.read<IndicadorEvaluacionProvider>().indicadores,
-            context.read<CorteEvaluativoProvider>().selectedCorte!.id!,
-            context.read<CorteEvaluativoProvider>().selectedCorte!.nombre),
-      );
-
-      for (final indicador in notaDetalle.indicadores) {
-        for (final criterio in indicador.criterios) {
-          // Since notes are saved on change, perhaps just refresh or show message
-          // For now, we'll show a snackbar
-        }
-      }
-    }
-
+    // Las notas se guardan automáticamente al cambiar el valor en el campo de texto.
+    // Este botón ahora solo confirma que los datos locales están sincronizados.
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Todas las notas han sido guardadas')),
+      const SnackBar(
+        content: Text('Todas las notas han sido guardadas correctamente'),
+        backgroundColor: Colors.green,
+      ),
     );
   }
 

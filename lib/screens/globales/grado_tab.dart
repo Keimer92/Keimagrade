@@ -17,8 +17,9 @@ class _GradoTabState extends State<GradoTab> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      context.read<GradoProvider>().cargarGrados();
+    Future.microtask(() async {
+      if (!mounted) return;
+      await context.read<GradoProvider>().cargarGrados();
     });
   }
 
@@ -84,27 +85,28 @@ class _GradoTabState extends State<GradoTab> {
                 nombre: nombre,
               );
 
+              final provider = context.read<GradoProvider>();
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+
               if (grado == null) {
-                final exito =
-                    await context.read<GradoProvider>().crearGrado(nuevoGrado);
-                if (!exito && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                final exito = await provider.crearGrado(nuevoGrado);
+                if (!exito) {
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text(
                           'No se puede crear el grado. Ya existe un grado con número $numero o nombre "$nombre"'),
-                      backgroundColor: AppTheme.getErrorColor(context),
+                      backgroundColor: AppTheme.errorColor,
                       duration: const Duration(seconds: 4),
                     ),
                   );
                   return; // No cerrar el diálogo si hay error
                 }
               } else {
-                context.read<GradoProvider>().actualizarGrado(nuevoGrado);
+                await provider.actualizarGrado(nuevoGrado);
               }
 
-              if (mounted) {
-                Navigator.pop(context);
-              }
+              navigator.pop();
             },
             child: Text(grado == null ? 'Agregar' : 'Actualizar'),
           ),
@@ -170,7 +172,7 @@ class _GradoTabState extends State<GradoTab> {
                     return CustomCard(
                       onTap: () => provider.seleccionarGrado(grado),
                       backgroundColor: provider.selectedGrado?.id == grado.id
-                          ? Theme.of(context).primaryColor.withOpacity(0.2)
+                          ? Theme.of(context).primaryColor.withValues(alpha: 0.2)
                           : Theme.of(context).cardColor,
                       padding: const EdgeInsets.all(12),
                       child: Column(
@@ -182,7 +184,7 @@ class _GradoTabState extends State<GradoTab> {
                             decoration: BoxDecoration(
                               color: Theme.of(context)
                                   .primaryColor
-                                  .withOpacity(0.2),
+                                  .withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Center(
@@ -229,7 +231,7 @@ class _GradoTabState extends State<GradoTab> {
                                   const SizedBox(width: 8),
                                   Switch(
                                     value: grado.cualitativo,
-                                    activeThumbColor:
+                                    activeColor:
                                         Theme.of(context).primaryColor,
                                     inactiveThumbColor:
                                         AppTheme.getTextTertiary(context),
